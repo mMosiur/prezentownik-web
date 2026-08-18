@@ -79,8 +79,8 @@ async function moveItem(index: number, direction: 'up' | 'down') {
   const newIndex = direction === 'up' ? index - 1 : index + 1
   if (newIndex < 0 || newIndex >= items.length) return
 
-  const itemA = items[index]
-  const itemB = items[newIndex]
+  const itemA = items[index]!;
+  const itemB = items[newIndex]!;
 
   const tempOrder = itemA.orderNumber
   
