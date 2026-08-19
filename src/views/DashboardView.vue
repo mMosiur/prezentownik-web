@@ -1,31 +1,153 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { useListStore } from '@/stores/list'
+import { useListStore, type ListSummary } from '@/stores/list'
 import { useRouter } from 'vue-router'
+import { parseApiError } from '@/utils/errors'
 
 const listStore = useListStore()
 const router = useRouter()
 
 const showCreateModal = ref(false)
 const newList = ref({ name: '', description: '' })
-const error = ref('')
+const createError = ref('')
+const createFieldErrors = ref<Record<string, string>>({})
+const isCreating = ref(false)
+
+const showEditModal = ref(false)
+const editingListId = ref<string | null>(null)
+const editListForm = ref({ name: '', description: '' })
+const editError = ref('')
+const editFieldErrors = ref<Record<string, string>>({})
+const isEditing = ref(false)
+
+const showDeleteModal = ref(false)
+const listToDelete = ref<ListSummary | null>(null)
+const deleteError = ref('')
+const isDeleting = ref(false)
 
 onMounted(async () => {
   await listStore.fetchLists()
 })
 
+function openCreateModal() {
+  newList.value = { name: '', description: '' }
+  createError.value = ''
+  createFieldErrors.value = {}
+  showCreateModal.value = true
+}
+
+function clearCreateFieldError(field: string) {
+  if (createFieldErrors.value[field]) {
+    delete createFieldErrors.value[field]
+  }
+  if (createError.value) {
+    createError.value = ''
+  }
+}
+
 async function handleCreateList() {
-  error.value = ''
+  if (isCreating.value) return
+
+  createError.value = ''
+  createFieldErrors.value = {}
+
+  const trimmedName = newList.value.name.trim()
+  if (!trimmedName) {
+    createFieldErrors.value.name = 'Nazwa listy jest wymagana.'
+    return
+  }
+
+  isCreating.value = true
   try {
     const created = await listStore.createList({
-      name: newList.value.name,
-      description: newList.value.description || null
+      name: trimmedName,
+      description: newList.value.description?.trim() || null
     })
     showCreateModal.value = false
     newList.value = { name: '', description: '' }
     router.push({ name: 'list-manage', params: { listId: created.id } })
-  } catch (err: any) {
-    error.value = err.response?.data?.title || 'Nie udało się utworzyć listy.'
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, 'Nie udało się utworzyć listy.')
+    createError.value = parsed.message
+    if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
+      createFieldErrors.value = { ...parsed.fieldErrors }
+    }
+  } finally {
+    isCreating.value = false
+  }
+}
+
+function openEditModal(list: ListSummary) {
+  editingListId.value = list.id
+  editListForm.value = {
+    name: list.name,
+    description: list.description ?? ''
+  }
+  editError.value = ''
+  editFieldErrors.value = {}
+  showEditModal.value = true
+}
+
+function clearEditFieldError(field: string) {
+  if (editFieldErrors.value[field]) {
+    delete editFieldErrors.value[field]
+  }
+  if (editError.value) {
+    editError.value = ''
+  }
+}
+
+async function handleUpdateList() {
+  if (isEditing.value || !editingListId.value) return
+
+  editError.value = ''
+  editFieldErrors.value = {}
+
+  const trimmedName = editListForm.value.name.trim()
+  if (!trimmedName) {
+    editFieldErrors.value.name = 'Nazwa listy jest wymagana.'
+    return
+  }
+
+  isEditing.value = true
+  try {
+    await listStore.updateList(editingListId.value, {
+      name: trimmedName,
+      description: editListForm.value.description?.trim() || null
+    })
+    showEditModal.value = false
+    editingListId.value = null
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, 'Nie udało się zaktualizować listy.')
+    editError.value = parsed.message
+    if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
+      editFieldErrors.value = { ...parsed.fieldErrors }
+    }
+  } finally {
+    isEditing.value = false
+  }
+}
+
+function openDeleteModal(list: ListSummary) {
+  listToDelete.value = list
+  deleteError.value = ''
+  showDeleteModal.value = true
+}
+
+async function handleDeleteList() {
+  if (isDeleting.value || !listToDelete.value) return
+
+  deleteError.value = ''
+  isDeleting.value = true
+  try {
+    await listStore.deleteList(listToDelete.value.id)
+    showDeleteModal.value = false
+    listToDelete.value = null
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, 'Nie udało się usunąć listy.')
+    deleteError.value = parsed.message
+  } finally {
+    isDeleting.value = false
   }
 }
 
@@ -48,7 +170,7 @@ function copyShareLink(id: string) {
   <div class="container">
     <div class="dashboard-header mt-2">
       <h1>Moje Listy Prezentów</h1>
-      <button @click="showCreateModal = true" class="btn">Nowa Lista</button>
+      <button @click="openCreateModal" class="btn">Nowa Lista</button>
     </div>
 
     <div v-if="listStore.isLoading && listStore.lists.length === 0" class="text-center mt-2">
@@ -59,7 +181,7 @@ function copyShareLink(id: string) {
       <div class="empty-icon">📂</div>
       <h2>Nie masz jeszcze żadnych list</h2>
       <p class="mt-1">Stwórz swoją pierwszą listę, aby zacząć zbierać pomysły na prezenty.</p>
-      <button @click="showCreateModal = true" class="btn mt-2">Utwórz pierwszą listę</button>
+      <button @click="openCreateModal" class="btn mt-2">Utwórz pierwszą listę</button>
     </div>
 
     <div v-else class="list-grid mt-2">
@@ -69,10 +191,12 @@ function copyShareLink(id: string) {
           <p v-if="list.description" class="description">{{ list.description }}</p>
         </div>
         <div class="card-footer" @click.stop>
+          <button @click="openEditModal(list)" class="btn btn-sm btn-outline">Edytuj</button>
           <button @click="goToList(list.id)" class="btn btn-sm btn-outline">Zarządzaj</button>
           <button @click="copyShareLink(list.id)" class="btn btn-sm btn-outline">
             {{ copiedId === list.id ? 'Skopiowano!' : 'Udostępnij link' }}
           </button>
+          <button @click="openDeleteModal(list)" class="btn btn-sm btn-outline btn-danger">Usuń</button>
         </div>
       </div>
     </div>
@@ -83,25 +207,146 @@ function copyShareLink(id: string) {
         <div class="modal card" @click.stop>
           <div class="modal-header">
             <h2>Nowa Lista Prezentów</h2>
-            <button class="close-btn" @click="showCreateModal = false">&times;</button>
+            <button class="close-btn" aria-label="Zamknij" @click="showCreateModal = false">&times;</button>
           </div>
-          <form @submit.prevent="handleCreateList" class="mt-1">
-            <div class="form-group">
-              <label>Nazwa listy</label>
-              <input v-model="newList.name" required placeholder="Np. Baby Shower, Urodziny 2024" />
+
+          <div v-if="createError" class="alert alert-error mt-1" role="alert">
+            <span class="alert-desc">{{ createError }}</span>
+          </div>
+
+          <form @submit.prevent="handleCreateList" class="mt-1" novalidate>
+            <div class="form-group" :class="{ 'has-error': !!createFieldErrors.name }">
+              <label for="new-list-name">
+                Nazwa listy <span class="required-mark">*</span>
+              </label>
+              <input
+                id="new-list-name"
+                v-model="newList.name"
+                required
+                placeholder="Np. Baby Shower, Urodziny 2024"
+                :disabled="isCreating"
+                @input="clearCreateFieldError('name')"
+              />
+              <p v-if="createFieldErrors.name" class="field-error-msg" role="alert">
+                {{ createFieldErrors.name }}
+              </p>
             </div>
             <div class="form-group">
-              <label>Opis (opcjonalnie)</label>
-              <textarea v-model="newList.description" rows="3" placeholder="Dodaj krótki opis lub okazję..."></textarea>
+              <label for="new-list-description">Opis (opcjonalnie)</label>
+              <textarea
+                id="new-list-description"
+                v-model="newList.description"
+                rows="3"
+                placeholder="Dodaj krótki opis lub okazję..."
+                :disabled="isCreating"
+              ></textarea>
             </div>
-            <div v-if="error" class="error-message text-center mb-1">{{ error }}</div>
             <div class="modal-actions">
-              <button type="button" @click="showCreateModal = false" class="btn btn-outline">Anuluj</button>
-              <button type="submit" class="btn" :disabled="listStore.isLoading">
-                {{ listStore.isLoading ? 'Tworzenie...' : 'Utwórz listę' }}
+              <button type="button" @click="showCreateModal = false" class="btn btn-outline" :disabled="isCreating">
+                Anuluj
+              </button>
+              <button type="submit" class="btn" :disabled="isCreating">
+                {{ isCreating ? 'Tworzenie...' : 'Utwórz listę' }}
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Edit Modal -->
+    <Teleport to="body">
+      <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+        <div class="modal card" @click.stop>
+          <div class="modal-header">
+            <h2>Edytuj Listę Prezentów</h2>
+            <button class="close-btn" aria-label="Zamknij" @click="showEditModal = false">&times;</button>
+          </div>
+
+          <div v-if="editError" class="alert alert-error mt-1" role="alert">
+            <span class="alert-desc">{{ editError }}</span>
+          </div>
+
+          <form @submit.prevent="handleUpdateList" class="mt-1" novalidate>
+            <div class="form-group" :class="{ 'has-error': !!editFieldErrors.name }">
+              <label for="edit-dashboard-list-name">
+                Nazwa listy <span class="required-mark">*</span>
+              </label>
+              <input
+                id="edit-dashboard-list-name"
+                v-model="editListForm.name"
+                required
+                placeholder="Np. Baby Shower, Urodziny 2024"
+                :disabled="isEditing"
+                @input="clearEditFieldError('name')"
+              />
+              <p v-if="editFieldErrors.name" class="field-error-msg" role="alert">
+                {{ editFieldErrors.name }}
+              </p>
+            </div>
+            <div class="form-group">
+              <label for="edit-dashboard-list-description">Opis (opcjonalnie)</label>
+              <textarea
+                id="edit-dashboard-list-description"
+                v-model="editListForm.description"
+                rows="3"
+                placeholder="Dodaj krótki opis lub okazję..."
+                :disabled="isEditing"
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" @click="showEditModal = false" class="btn btn-outline" :disabled="isEditing">
+                Anuluj
+              </button>
+              <button type="submit" class="btn" :disabled="isEditing">
+                {{ isEditing ? 'Zapisywanie...' : 'Zapisz zmiany' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- Delete Confirmation Modal -->
+    <Teleport to="body">
+      <div v-if="showDeleteModal" class="modal-overlay" @click="!isDeleting && (showDeleteModal = false)">
+        <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="delete-dashboard-list-title">
+          <div class="modal-header">
+            <h2 id="delete-dashboard-list-title">Usuń listę prezentów</h2>
+            <button class="close-btn" aria-label="Zamknij" :disabled="isDeleting" @click="showDeleteModal = false">&times;</button>
+          </div>
+
+          <div v-if="deleteError" class="alert alert-error mt-1" role="alert">
+            <span class="alert-desc">{{ deleteError }}</span>
+          </div>
+
+          <div class="confirm-content mt-1">
+            <p>
+              Czy na pewno chcesz usunąć listę <strong>«{{ listToDelete?.name }}»</strong>?
+            </p>
+            <p class="confirm-warning">
+              Ta operacja jest nieodwracalna. Wszystkie prezenty przypisane do tej listy zostaną trwale usunięte.
+            </p>
+          </div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              @click="showDeleteModal = false"
+              class="btn btn-outline"
+              :disabled="isDeleting"
+            >
+              Anuluj
+            </button>
+            <button
+              type="button"
+              @click="handleDeleteList"
+              class="btn btn-danger-solid"
+              :disabled="isDeleting"
+            >
+              {{ isDeleting ? 'Usuwanie...' : 'Usuń listę' }}
+            </button>
+          </div>
         </div>
       </div>
     </Teleport>
@@ -156,7 +401,8 @@ function copyShareLink(id: string) {
 
 .card-footer {
   display: flex;
-  gap: 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 1.5rem;
 }
 
@@ -167,6 +413,42 @@ function copyShareLink(id: string) {
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+}
+
+.required-mark {
+  color: #d63031;
+  font-weight: bold;
+}
+
+.form-group.has-error input,
+.form-group.has-error textarea {
+  border-color: #d63031;
+}
+
+.field-error-msg {
+  color: #d63031;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+}
+
+.alert-error {
+  background-color: #fff5f5;
+  border: 1px solid #feb2b2;
+  color: #c53030;
+}
+
+.alert-desc {
+  line-height: 1.4;
 }
 
 .modal-overlay {
@@ -215,6 +497,47 @@ function copyShareLink(id: string) {
 .btn-sm {
   padding: 0.4rem 0.75rem;
   font-size: 0.85rem;
+}
+
+.btn-danger {
+  color: #d63031;
+  border-color: #d63031;
+}
+
+.btn-danger:hover {
+  background-color: rgba(214, 48, 49, 0.1);
+}
+
+.btn-danger-solid {
+  background-color: #d63031;
+  color: white;
+  border: 1px solid #d63031;
+}
+
+.btn-danger-solid:hover:not(:disabled) {
+  background-color: #c02626;
+  border-color: #c02626;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.btn-danger-solid:disabled {
+  background-color: #feb2b2;
+  border-color: #feb2b2;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.confirm-content {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: var(--color-heading);
+}
+
+.confirm-warning {
+  color: #718096;
+  font-size: 0.95rem;
+  margin-top: 0.5rem;
 }
 
 @media (max-width: 480px) {

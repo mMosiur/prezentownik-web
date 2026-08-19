@@ -50,7 +50,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   if (to.meta.auth && !authStore.isAuthenticated) {
-    next({ name: 'login' })
+    next({ name: 'login', query: { redirect: to.fullPath } })
   } else if (to.meta.guest && authStore.isAuthenticated) {
     next({ name: 'dashboard' })
   } else {

@@ -10,6 +10,12 @@ export interface UserInfo {
 
 export type LoginRequest = components['schemas']['LoginRequest']
 export type RegisterRequest = components['schemas']['RegisterRequest']
+export type UpdateUserInfoRequest = components['schemas']['UpdateUserInfoRequest']
+
+export interface LoginOptions {
+  useCookies?: boolean
+  useSessionCookies?: boolean
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserInfo | null>(null)
@@ -29,8 +35,22 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function login(data: LoginRequest) {
-    await client.post('/auth/login?useCookies=true', data)
+  async function updateUser(data: UpdateUserInfoRequest) {
+    await client.put('/auth/me', data)
+    if (user.value) {
+      user.value.displayName = data.displayName
+    }
+  }
+
+  async function login(data: LoginRequest, options?: LoginOptions) {
+    const params = new URLSearchParams()
+    const useCookies = options?.useCookies ?? true
+    params.set('useCookies', String(useCookies))
+    if (options?.useSessionCookies !== undefined) {
+      params.set('useSessionCookies', String(options.useSessionCookies))
+    }
+
+    await client.post(`/auth/login?${params.toString()}`, data)
     await fetchUser()
   }
 
@@ -48,5 +68,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isAuthenticated, isLoading, fetchUser, login, register, logout }
+  return { user, isAuthenticated, isLoading, fetchUser, updateUser, login, register, logout }
 })

@@ -9,6 +9,7 @@ export type Item = components['schemas']['ItemDto']
 export type UpsertItemRequest = components['schemas']['UpsertItemRequest']
 export type CreateListRequest = components['schemas']['CreateGiftListRequest']
 export type UpdateListRequest = components['schemas']['UpdateGiftListRequest']
+export type ReorderItemsRequest = components['schemas']['ReorderItemsRequest']
 
 export const useListStore = defineStore('list', () => {
   const lists = ref<ListSummary[]>([])
@@ -46,16 +47,17 @@ export const useListStore = defineStore('list', () => {
   }
 
   async function updateList(listId: string, data: UpdateListRequest) {
-    await client.put(`/user/lists/${listId}`, data)
+    const response = await client.put<ListSummary>(`/user/lists/${listId}`, data)
     if (currentList.value && currentList.value.id === listId) {
-      currentList.value.name = data.name
-      currentList.value.description = data.description
+      currentList.value.name = response.data?.name ?? data.name
+      currentList.value.description = response.data?.description ?? data.description
     }
     const list = lists.value.find(l => l.id === listId)
     if (list) {
-      list.name = data.name
-      list.description = data.description
+      list.name = response.data?.name ?? data.name
+      list.description = response.data?.description ?? data.description
     }
+    return response.data
   }
 
   async function deleteList(listId: string) {
@@ -81,10 +83,43 @@ export const useListStore = defineStore('list', () => {
     await fetchListDetails(listId)
   }
 
+  async function reorderItems(listId: string, itemIds: string[]) {
+    const previousItems = currentList.value?.items ? [...currentList.value.items] : null
+    if (currentList.value?.items) {
+      const itemsMap = new Map(currentList.value.items.map(i => [i.id, i]))
+      const reordered: Item[] = []
+      for (let i = 0; i < itemIds.length; i++) {
+        const id = itemIds[i]
+        if (id !== undefined) {
+          const item = itemsMap.get(id)
+          if (item) {
+            reordered.push({ ...item, orderNumber: i + 1 })
+          }
+        }
+      }
+      currentList.value.items = reordered
+    }
+
+    try {
+      const response = await client.put<ListDetails>(`/user/lists/${listId}/items/reorder`, { itemIds })
+      currentList.value = response.data
+      if (currentList.value.items) {
+        currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+      }
+      return response.data
+    } catch (err) {
+      if (previousItems && currentList.value) {
+        currentList.value.items = previousItems
+      }
+      throw err
+    }
+  }
+
   return { 
     lists, currentList, isLoading, 
     fetchLists, fetchListDetails, 
     createList, updateList, deleteList,
-    addItem, updateItem, deleteItem 
+    addItem, updateItem, deleteItem,
+    reorderItems
   }
 })
