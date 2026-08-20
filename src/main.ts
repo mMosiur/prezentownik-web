@@ -1,3 +1,5 @@
+import '@fontsource/arima/400.css'
+import '@fontsource/arima/600.css'
 import './assets/main.css'
 
 import { createApp } from 'vue'

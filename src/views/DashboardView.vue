@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useListStore, type ListSummary } from '@/stores/list'
 import { useRouter } from 'vue-router'
 import { parseApiError } from '@/utils/errors'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 import ShareListModal from '@/components/ShareListModal.vue'
 
 const listStore = useListStore()
@@ -28,6 +29,12 @@ const isDeleting = ref(false)
 
 onMounted(async () => {
   await listStore.fetchLists()
+})
+
+useEscapeKey(() => {
+  if (showCreateModal.value && !isCreating.value) showCreateModal.value = false
+  else if (showEditModal.value && !isEditing.value) showEditModal.value = false
+  else if (showDeleteModal.value && !isDeleting.value) showDeleteModal.value = false
 })
 
 function openCreateModal() {
@@ -200,9 +207,9 @@ function openShareModal(list: ListSummary) {
     <!-- Create Modal -->
     <Teleport to="body">
       <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
-        <div class="modal card" @click.stop>
+        <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="create-list-title">
           <div class="modal-header">
-            <h2>Nowa Lista Prezentów</h2>
+            <h2 id="create-list-title">Nowa Lista Prezentów</h2>
             <button class="close-btn" aria-label="Zamknij" @click="showCreateModal = false">&times;</button>
           </div>
 
@@ -253,9 +260,9 @@ function openShareModal(list: ListSummary) {
     <!-- Edit Modal -->
     <Teleport to="body">
       <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
-        <div class="modal card" @click.stop>
+        <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-dashboard-list-title">
           <div class="modal-header">
-            <h2>Edytuj Listę Prezentów</h2>
+            <h2 id="edit-dashboard-list-title">Edytuj Listę Prezentów</h2>
             <button class="close-btn" aria-label="Zamknij" @click="showEditModal = false">&times;</button>
           </div>
 

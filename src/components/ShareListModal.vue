@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 
 const props = defineProps<{
   listId: string
@@ -9,6 +10,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
 }>()
+
+useEscapeKey(() => emit('close'))
 
 const shareUrl = computed(() => `${window.location.origin}/lists/${props.listId}`)
 const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share

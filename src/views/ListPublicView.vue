@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 
 const route = useRoute()
 const router = useRouter()
@@ -15,6 +16,7 @@ const listId = route.params.listId as string
 // data is never rendered - even for a split second - to the person who
 // should be surprised by the gifts.
 const isCheckingOwnership = ref(true)
+const loadError = ref(false)
 
 const showClaimModal = ref(false)
 const selectedItem = ref<PublicItem | null>(null)
@@ -31,7 +33,15 @@ const unclaimError = ref('')
 const isUnclaiming = ref(false)
 
 onMounted(async () => {
-  await claimStore.fetchPublicList(listId)
+  // The public fetch fails with 403 when the caller is the list owner - that
+  // must NOT stop us from attempting the owner redirect below, so any error
+  // here is captured instead of being allowed to propagate.
+  let publicFetchFailed = false
+  try {
+    await claimStore.fetchPublicList(listId)
+  } catch {
+    publicFetchFailed = true
+  }
 
   if (authStore.isAuthenticated) {
     try {
@@ -48,7 +58,15 @@ onMounted(async () => {
     }
   }
 
+  if (publicFetchFailed) {
+    loadError.value = true
+  }
   isCheckingOwnership.value = false
+})
+
+useEscapeKey(() => {
+  if (showClaimModal.value && !isSubmittingClaim.value) showClaimModal.value = false
+  else if (showUnclaimModal.value && !isUnclaiming.value) showUnclaimModal.value = false
 })
 
 function openClaim(item: PublicItem) {
@@ -186,10 +204,10 @@ function getProgress(item: PublicItem) {
       <!-- Claim Modal -->
       <Teleport to="body">
         <div v-if="showClaimModal && selectedItem" class="modal-overlay" @click="!isSubmittingClaim && (showClaimModal = false)">
-          <div class="modal card" @click.stop>
+          <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
             <div class="modal-header">
-              <h2>Rezerwacja: {{ selectedItem.name }}</h2>
-              <button class="close-btn" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
+              <h2 id="claim-modal-title">Rezerwacja: {{ selectedItem.name }}</h2>
+              <button class="close-btn" aria-label="Zamknij" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
             </div>
             <form @submit.prevent="handleClaim" class="mt-1">
               <div class="form-group">
@@ -247,6 +265,9 @@ function getProgress(item: PublicItem) {
           </div>
         </div>
       </Teleport>
+    </div>
+    <div v-else-if="loadError" class="text-center mt-2">
+      <p>Nie udało się znaleźć tej listy prezentów. Sprawdź, czy link jest poprawny.</p>
     </div>
     <div v-else class="text-center mt-2">
       <p>Ładowanie listy prezentów...</p>

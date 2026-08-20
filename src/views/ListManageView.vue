@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
 import { parseApiError } from '@/utils/errors'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 import ShareListModal from '@/components/ShareListModal.vue'
 
 const route = useRoute()
@@ -63,6 +64,14 @@ onMounted(async () => {
       router.push({ name: 'dashboard' })
     }
   }
+})
+
+useEscapeKey(() => {
+  if (showShareModal.value) showShareModal.value = false
+  else if (showItemModal.value && !isSavingItem.value) showItemModal.value = false
+  else if (showEditListModal.value && !isSavingList.value) showEditListModal.value = false
+  else if (showDeleteListModal.value && !isDeletingList.value) showDeleteListModal.value = false
+  else if (showDeleteItemModal.value && !isDeletingItem.value) showDeleteItemModal.value = false
 })
 
 function dismissRedirectNotice() {
@@ -420,9 +429,9 @@ function getItemTypeName(type: number) {
       <!-- Edit List Modal -->
       <Teleport to="body">
         <div v-if="showEditListModal" class="modal-overlay" @click="showEditListModal = false">
-          <div class="modal card" @click.stop>
+          <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-list-title">
             <div class="modal-header">
-              <h2>Edytuj listę prezentów</h2>
+              <h2 id="edit-list-title">Edytuj listę prezentów</h2>
               <button class="close-btn" aria-label="Zamknij" @click="showEditListModal = false">&times;</button>
             </div>
 
@@ -484,10 +493,10 @@ function getItemTypeName(type: number) {
       <!-- Item Modal -->
       <Teleport to="body">
         <div v-if="showItemModal" class="modal-overlay" @click="!isSavingItem && (showItemModal = false)">
-          <div class="modal card" @click.stop>
+          <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
             <div class="modal-header">
-              <h2>{{ editingItem ? 'Edytuj prezent' : 'Dodaj nowy prezent' }}</h2>
-              <button class="close-btn" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
+              <h2 id="item-modal-title">{{ editingItem ? 'Edytuj prezent' : 'Dodaj nowy prezent' }}</h2>
+              <button class="close-btn" aria-label="Zamknij" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
             </div>
 
             <div v-if="itemFormError" class="alert alert-error mt-1" role="alert">

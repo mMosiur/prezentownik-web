@@ -49,8 +49,8 @@ function validateForm(): boolean {
   if (!password.value) {
     fieldErrors.value.password = 'Wprowadź hasło.'
     isValid = false
-  } else if (password.value.length < 6) {
-    fieldErrors.value.password = 'Hasło musi mieć co najmniej 6 znaków.'
+  } else if (password.value.length < 8) {
+    fieldErrors.value.password = 'Hasło musi mieć co najmniej 8 znaków.'
     isValid = false
   }
 
@@ -174,7 +174,7 @@ async function handleSubmit() {
               :type="showPassword ? 'text' : 'password'"
               name="password"
               autocomplete="new-password"
-              placeholder="Min. 6 znaków"
+              placeholder="Min. 8 znaków"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.password"

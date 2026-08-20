@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
+import { useEscapeKey } from '@/composables/useEscapeKey'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -22,6 +23,10 @@ function openDisplayNameModal() {
   displayNameError.value = ''
   showDisplayNameModal.value = true
 }
+
+useEscapeKey(() => {
+  if (showDisplayNameModal.value && !isSavingDisplayName.value) showDisplayNameModal.value = false
+})
 
 async function saveDisplayName() {
   if (isSavingDisplayName.value) return
