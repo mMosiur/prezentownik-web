@@ -40,3 +40,33 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Deployment to GitHub Pages
+
+The site is automatically built and deployed to GitHub Pages by the
+[`deploy.yml`](.github/workflows/deploy.yml) workflow whenever changes are
+pushed to `main` (it can also be triggered manually from the Actions tab).
+
+One-time repository setup:
+
+1. In **Settings → Pages**, set **Source** to **GitHub Actions**.
+2. In **Settings → Secrets and variables → Actions → Variables**, add a
+   repository variable `VITE_API_BASE_URL` pointing to the publicly
+   reachable URL of the deployed backend API (e.g.
+   `https://api.example.com/api`). Without it, the app falls back to the
+   relative `/api` path, which does not exist on GitHub Pages.
+3. Make sure the backend:
+   - allows CORS requests from the Pages origin
+     (`https://<user>.github.io`) with credentials enabled, and
+   - issues its auth cookies with `SameSite=None; Secure`, since the
+     frontend and backend are served from different origins once deployed.
+
+The build sets `base: /prezentownik-web/` (see `vite.config.ts`) so assets
+and routes resolve correctly under the project's Pages URL
+(`https://<user>.github.io/prezentownik-web/`). Deep links (e.g. shared list
+URLs) work thanks to the `public/404.html` redirect combined with the
+restore script in `index.html`, which together emulate SPA history-mode
+routing on GitHub Pages' static hosting.
+
+If the repository is ever renamed, update the `base` path in
+`vite.config.ts` and `pathSegmentsToKeep` in `public/404.html` accordingly.

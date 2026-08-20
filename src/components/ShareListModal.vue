@@ -13,7 +13,7 @@ const emit = defineEmits<{
 
 useEscapeKey(() => emit('close'))
 
-const shareUrl = computed(() => `${window.location.origin}/lists/${props.listId}`)
+const shareUrl = computed(() => `${window.location.origin}${import.meta.env.BASE_URL}lists/${props.listId}`)
 const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share
 
 const isCopied = ref(false)
