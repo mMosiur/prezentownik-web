@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useListStore, type ListSummary } from '@/stores/list'
 import { useRouter } from 'vue-router'
 import { parseApiError } from '@/utils/errors'
+import ShareListModal from '@/components/ShareListModal.vue'
 
 const listStore = useListStore()
 const router = useRouter()
@@ -155,14 +156,11 @@ function goToList(id: string) {
   router.push({ name: 'list-manage', params: { listId: id } })
 }
 
-const copiedId = ref<string | null>(null)
-function copyShareLink(id: string) {
-  const link = `${window.location.origin}/lists/${id}`
-  navigator.clipboard.writeText(link)
-  copiedId.value = id
-  setTimeout(() => {
-    copiedId.value = null
-  }, 2000)
+const showShareModal = ref(false)
+const listToShare = ref<ListSummary | null>(null)
+function openShareModal(list: ListSummary) {
+  listToShare.value = list
+  showShareModal.value = true
 }
 </script>
 
@@ -193,9 +191,7 @@ function copyShareLink(id: string) {
         <div class="card-footer" @click.stop>
           <button @click="openEditModal(list)" class="btn btn-sm btn-outline">Edytuj</button>
           <button @click="goToList(list.id)" class="btn btn-sm btn-outline">Zarządzaj</button>
-          <button @click="copyShareLink(list.id)" class="btn btn-sm btn-outline">
-            {{ copiedId === list.id ? 'Skopiowano!' : 'Udostępnij link' }}
-          </button>
+          <button @click="openShareModal(list)" class="btn btn-sm btn-outline">Udostępnij</button>
           <button @click="openDeleteModal(list)" class="btn btn-sm btn-outline btn-danger">Usuń</button>
         </div>
       </div>
@@ -350,6 +346,13 @@ function copyShareLink(id: string) {
         </div>
       </div>
     </Teleport>
+
+    <ShareListModal
+      v-if="showShareModal && listToShare"
+      :list-id="listToShare.id"
+      :list-name="listToShare.name"
+      @close="showShareModal = false"
+    />
   </div>
 </template>
 

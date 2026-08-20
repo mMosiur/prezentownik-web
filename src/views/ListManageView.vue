@@ -3,14 +3,20 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
 import { parseApiError } from '@/utils/errors'
+import ShareListModal from '@/components/ShareListModal.vue'
 
 const route = useRoute()
 const router = useRouter()
 const listStore = useListStore()
 const listId = route.params.listId as string
 
+const showShareModal = ref(false)
+const redirectedFromPublic = ref(route.query.fromPublic === '1')
+
 const showItemModal = ref(false)
 const editingItem = ref<Item | null>(null)
+const isSavingItem = ref(false)
+const itemFormError = ref('')
 const itemForm = ref<{
   name: string
   description: string | null
@@ -45,6 +51,7 @@ const isDeletingItem = ref(false)
 const deleteItemError = ref('')
 
 const isReordering = ref(false)
+const reorderError = ref('')
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
@@ -57,6 +64,11 @@ onMounted(async () => {
     }
   }
 })
+
+function dismissRedirectNotice() {
+  redirectedFromPublic.value = false
+  router.replace({ name: 'list-manage', params: { listId } })
+}
 
 function openEditList() {
   if (!listStore.currentList) return
@@ -133,6 +145,7 @@ async function confirmDeleteList() {
 
 function openAddItem() {
   editingItem.value = null
+  itemFormError.value = ''
   itemForm.value = {
     name: '',
     description: '',
@@ -144,6 +157,7 @@ function openAddItem() {
 
 function openEditItem(item: Item) {
   editingItem.value = item
+  itemFormError.value = ''
   itemForm.value = {
     name: item.name,
     description: item.description ?? '',
@@ -154,6 +168,10 @@ function openEditItem(item: Item) {
 }
 
 async function saveItem() {
+  if (isSavingItem.value) return
+
+  itemFormError.value = ''
+  isSavingItem.value = true
   try {
     const payload: UpsertItemRequest = {
       name: itemForm.value.name,
@@ -167,8 +185,11 @@ async function saveItem() {
       await listStore.addItem(listId, payload)
     }
     showItemModal.value = false
-  } catch (err) {
-    alert('Błąd podczas zapisywania elementu')
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, 'Nie udało się zapisać prezentu.')
+    itemFormError.value = parsed.message
+  } finally {
+    isSavingItem.value = false
   }
 }
 
@@ -207,10 +228,12 @@ async function moveItem(index: number, direction: 'up' | 'down') {
   if (movedId) {
     itemIds.splice(newIndex, 0, movedId)
     isReordering.value = true
+    reorderError.value = ''
     try {
       await listStore.reorderItems(listId, itemIds)
-    } catch (err) {
-      alert('Nie udało się zmienić kolejności elementów.')
+    } catch (err: unknown) {
+      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności prezentów.')
+      reorderError.value = parsed.message
     } finally {
       isReordering.value = false
     }
@@ -261,10 +284,12 @@ async function onDrop(event: DragEvent, targetIndex: number) {
   if (movedId) {
     itemIds.splice(targetIndex, 0, movedId)
     isReordering.value = true
+    reorderError.value = ''
     try {
       await listStore.reorderItems(listId, itemIds)
-    } catch (err) {
-      alert('Nie udało się zmienić kolejności elementów.')
+    } catch (err: unknown) {
+      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności prezentów.')
+      reorderError.value = parsed.message
     } finally {
       isReordering.value = false
     }
@@ -293,6 +318,11 @@ function getItemTypeName(type: number) {
         <RouterLink :to="{ name: 'dashboard' }" class="back-link">&larr; Powrót do moich list</RouterLink>
       </div>
 
+      <div v-if="redirectedFromPublic" class="alert alert-info mt-1" role="status">
+        <span class="alert-desc">To Twoja lista, więc przenieliśmy Cię tutaj — na tej stronie nie zobaczysz, co zostało zarezerwowane, aby prezenty pozostały niespodzianką. Użyj przycisku „Udostępnij”, aby wysłać listę innym.</span>
+        <button class="close-btn" aria-label="Zamknij" @click="dismissRedirectNotice">&times;</button>
+      </div>
+
       <div class="list-details-header card mt-1">
         <div class="header-content">
           <div class="header-title-row">
@@ -312,6 +342,7 @@ function getItemTypeName(type: number) {
           <p v-if="listStore.currentList.description" class="list-description-text">{{ listStore.currentList.description }}</p>
         </div>
         <div class="header-actions">
+          <button @click="showShareModal = true" class="btn btn-outline">Udostępnij</button>
           <button @click="openEditList" class="btn btn-outline">Edytuj listę</button>
           <button @click="openAddItem" class="btn">Dodaj prezent</button>
           <button @click="openDeleteListModal" class="btn btn-outline btn-danger">Usuń listę</button>
@@ -325,7 +356,13 @@ function getItemTypeName(type: number) {
         <button @click="openAddItem" class="btn btn-outline mt-1">Dodaj prezent</button>
       </div>
 
-      <div v-else class="items-list mt-2">
+      <template v-else>
+        <div v-if="reorderError" class="alert alert-error mt-2" role="alert">
+          <span class="alert-desc">{{ reorderError }}</span>
+          <button class="close-btn" aria-label="Zamknij" @click="reorderError = ''">&times;</button>
+        </div>
+
+        <div class="items-list mt-2">
         <div
           v-for="(item, index) in listStore.currentList.items"
           :key="item.id"
@@ -377,7 +414,8 @@ function getItemTypeName(type: number) {
             </div>
           </div>
         </div>
-      </div>
+        </div>
+      </template>
 
       <!-- Edit List Modal -->
       <Teleport to="body">
@@ -445,12 +483,17 @@ function getItemTypeName(type: number) {
 
       <!-- Item Modal -->
       <Teleport to="body">
-        <div v-if="showItemModal" class="modal-overlay" @click="showItemModal = false">
+        <div v-if="showItemModal" class="modal-overlay" @click="!isSavingItem && (showItemModal = false)">
           <div class="modal card" @click.stop>
             <div class="modal-header">
               <h2>{{ editingItem ? 'Edytuj prezent' : 'Dodaj nowy prezent' }}</h2>
-              <button class="close-btn" @click="showItemModal = false">&times;</button>
+              <button class="close-btn" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
             </div>
+
+            <div v-if="itemFormError" class="alert alert-error mt-1" role="alert">
+              <span class="alert-desc">{{ itemFormError }}</span>
+            </div>
+
             <form @submit.prevent="saveItem" class="mt-1">
               <div class="form-group">
                 <label>Nazwa prezentu</label>
@@ -568,6 +611,13 @@ function getItemTypeName(type: number) {
           </div>
         </div>
       </Teleport>
+
+      <ShareListModal
+        v-if="showShareModal"
+        :list-id="listId"
+        :list-name="listStore.currentList.name"
+        @close="showShareModal = false"
+      />
     </div>
     <div v-else class="text-center mt-2">
       <p>Ładowanie szczegółów listy...</p>
@@ -670,6 +720,17 @@ function getItemTypeName(type: number) {
   color: #c53030;
 }
 
+.alert-info {
+  background-color: var(--color-accent-soft);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  justify-content: space-between;
+}
+
+.alert-info .close-btn {
+  flex-shrink: 0;
+}
+
 .alert-desc {
   line-height: 1.4;
 }
@@ -677,14 +738,14 @@ function getItemTypeName(type: number) {
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.6rem;
 }
 
 .item-card {
   display: flex;
-  padding: 1rem;
+  padding: 0.65rem 0.85rem;
   margin-bottom: 0;
-  gap: 1rem;
+  gap: 0.85rem;
   transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
 }
 
@@ -704,8 +765,8 @@ function getItemTypeName(type: number) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.25rem;
-  padding-right: 1rem;
+  gap: 0.1rem;
+  padding-right: 0.75rem;
   border-right: 1px solid var(--color-border);
   cursor: grab;
   user-select: none;
@@ -718,11 +779,11 @@ function getItemTypeName(type: number) {
 .order-btn {
   background: none;
   border: none;
-  font-size: 1.4rem;
+  font-size: 1.15rem;
   color: var(--color-accent);
   cursor: pointer;
   line-height: 1;
-  padding: 0.15rem 0.4rem;
+  padding: 0.1rem 0.35rem;
   border-radius: 4px;
   transition: background-color 0.15s ease, color 0.15s ease;
 }
@@ -738,7 +799,7 @@ function getItemTypeName(type: number) {
 
 .order-number {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: var(--color-heading);
 }
 
@@ -746,32 +807,59 @@ function getItemTypeName(type: number) {
   flex: 1;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
+  min-width: 0;
+}
+
+.item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .item-main h3 {
-  font-size: 1.25rem;
-  margin-bottom: 0.25rem;
+  font-size: 1.05rem;
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  max-width: 100%;
+  flex-shrink: 1;
 }
 
 .item-type {
-  font-size: 0.85rem;
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--color-accent);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 0.5rem;
+  letter-spacing: 0.4px;
+  margin-bottom: 0;
+  white-space: nowrap;
 }
 
 .item-description {
   color: #666;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-basis: 100%;
 }
 
 .item-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.item-actions .btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
 }
 
 .btn-danger {

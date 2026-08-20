@@ -4,6 +4,8 @@ import client from '@/api/client'
 import type { components } from '@/api/schema'
 
 export type PublicList = components['schemas']['PublicListDto']
+export type PublicItem = components['schemas']['PublicItemDto']
+export type PublicClaim = components['schemas']['PublicClaimDto']
 export type CreateClaimRequest = components['schemas']['CreateClaimRequest']
 export type CreateClaimResponse = components['schemas']['CreateClaimResponse']
 
