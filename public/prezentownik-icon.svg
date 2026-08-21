@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
+  <title id="title">Prezentownik — lista prezentów</title>
+  <rect width="128" height="128" rx="30" fill="#4f6d68"/>
+
+  <!-- A simple gift-list card, designed to stay legible at favicon size -->
+  <path d="M29 34h70a9 9 0 0 1 9 9v55a9 9 0 0 1-9 9H29a9 9 0 0 1-9-9V43a9 9 0 0 1 9-9Z" fill="#fffaf0"/>
+  <path d="M16 38a5 5 0 0 1 5-5h86a5 5 0 0 1 5 5v14H16V38Z" fill="#e26d61"/>
+
+  <!-- gift bow and ribbon -->
+  <path d="M64 32c-9-10-20-13-24-7-4 6 4 12 13 11 5 0 8-2 11-4Z" fill="#f18a74"/>
+  <path d="M64 32c9-10 20-13 24-7 4 6-4 12-13 11-5 0-8-2-11-4Z" fill="#f18a74"/>
+  <path d="M60 30h8v24h-8z" fill="#e8c477"/>
+
+  <!-- list rows -->
+  <path d="M35 65h8l4 4 7-8" fill="none" stroke="#4f6d68" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <path d="M62 64h27" fill="none" stroke="#4f6d68" stroke-linecap="round" stroke-width="5"/>
+  <path d="M35 81h8l4 4 7-8" fill="none" stroke="#e26d61" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <path d="M62 80h19" fill="none" stroke="#4f6d68" stroke-linecap="round" stroke-width="5"/>
+  <path d="M35 97h8l4 4 7-8" fill="none" stroke="#e8c477" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"/>
+  <path d="M62 96h27" fill="none" stroke="#4f6d68" stroke-linecap="round" stroke-width="5"/>
+</svg>

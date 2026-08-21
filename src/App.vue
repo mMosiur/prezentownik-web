@@ -12,6 +12,7 @@ const showDisplayNameModal = ref(false)
 const displayNameInput = ref('')
 const isSavingDisplayName = ref(false)
 const displayNameError = ref('')
+const iconUrl = `${import.meta.env.BASE_URL}prezentownik-icon.svg`
 
 async function handleLogout() {
   await authStore.logout()
@@ -54,7 +55,10 @@ async function saveDisplayName() {
 <template>
   <header class="app-header">
     <div class="container nav-wrapper">
-      <RouterLink to="/" class="brand">Prezentownik</RouterLink>
+      <RouterLink to="/" class="brand">
+        <img :src="iconUrl" alt="" class="brand-icon">
+        <span>Prezentownik</span>
+      </RouterLink>
       
       <nav class="main-nav">
         <template v-if="authStore.isAuthenticated">
@@ -151,11 +155,20 @@ async function saveDisplayName() {
 }
 
 .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-heading);
   text-decoration: none;
   letter-spacing: -0.5px;
+}
+
+.brand-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 auto;
 }
 
 .main-nav {
@@ -274,6 +287,11 @@ async function saveDisplayName() {
 @media (max-width: 480px) {
   .brand {
     font-size: 1.25rem;
+  }
+
+  .brand-icon {
+    width: 2rem;
+    height: 2rem;
   }
   
   .main-nav {
