@@ -41,32 +41,57 @@ npm run dev
 npm run build
 ```
 
-## Deployment to GitHub Pages
+## Deployment to Azure Static Web Apps
 
-The site is automatically built and deployed to GitHub Pages by the
-[`deploy.yml`](.github/workflows/deploy.yml) workflow whenever changes are
-pushed to `main` (it can also be triggered manually from the Actions tab).
+The app is deployed to
+[Azure Static Web Apps](https://azure.microsoft.com/products/app-service/static)
+by the workflow under `.github/workflows/azure-static-web-apps.yml`. That
+file was generated automatically by Azure when the Static Web App resource
+was created through the Portal with GitHub as the deployment source, and is
+triggered on pushes to `main` and on pull requests (which also get their own
+preview environment).
 
-One-time repository setup:
+Unlike GitHub Pages, Azure Static Web Apps serves the site from the domain
+root (e.g. `https://<app-name>.azurestaticapps.net/`), so no `base` subpath
+is needed - the default `base: '/'` in `vite.config.ts` already applies
+(the `GITHUB_PAGES`-only override is simply not set here).
 
-1. In **Settings → Pages**, set **Source** to **GitHub Actions**.
-2. In **Settings → Secrets and variables → Actions → Variables**, add a
-   repository variable `VITE_API_BASE_URL` pointing to the publicly
-   reachable URL of the deployed backend API (e.g.
-   `https://api.example.com/api`). Without it, the app falls back to the
-   relative `/api` path, which does not exist on GitHub Pages.
-3. Make sure the backend:
-   - allows CORS requests from the Pages origin
-     (`https://<user>.github.io`) with credentials enabled, and
-   - issues its auth cookies with `SameSite=None; Secure`, since the
-     frontend and backend are served from different origins once deployed.
+### Configuring the backend API URL
 
-The build sets `base: /prezentownik-web/` (see `vite.config.ts`) so assets
-and routes resolve correctly under the project's Pages URL
-(`https://<user>.github.io/prezentownik-web/`). Deep links (e.g. shared list
-URLs) work thanks to the `public/404.html` redirect combined with the
-restore script in `index.html`, which together emulate SPA history-mode
-routing on GitHub Pages' static hosting.
+The `api_location` field in the workflow (currently `""`) is **not** for
+this - it only applies if you attach a co-located Azure Functions app as a
+managed API to the Static Web App. This project instead calls an external
+backend over HTTP via the `VITE_API_BASE_URL` build-time variable, which
+Vite bakes into the bundle while building (see `src/api/client.ts`). Since
+the actual `npm run build` happens inside the "Build And Deploy" step of the
+GitHub Actions workflow (via Azure's Oryx builder), the variable must be
+supplied there, on the **GitHub** side, not in Azure Portal's app
+configuration/settings (those are only visible to a deployed Functions API
+at runtime, not to the build step that already ran on GitHub's runner).
 
-If the repository is ever renamed, update the `base` path in
-`vite.config.ts` and `pathSegmentsToKeep` in `public/404.html` accordingly.
+Concretely:
+
+1. In **Settings → Secrets and variables → Actions → Variables**, add a
+   repository variable `VITE_API_BASE_URL` pointing at the publicly
+   reachable backend API URL (e.g. `https://api.example.com/api`).
+2. The workflow's "Build And Deploy" step passes it through as an
+   environment variable (`env: VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}`)
+   so it's visible to the Oryx build that runs `npm install`/`npm run build`
+   under the hood.
+
+Also make sure the backend:
+
+- allows CORS requests (with credentials) from the production origin
+  (`https://<app-name>.azurestaticapps.net`, or your custom domain), and
+- issues its auth cookies with `SameSite=None; Secure`, since the frontend
+  and backend are served from different origins.
+- If you also want login to work in PR preview environments, note that each
+  one gets its own generated origin
+  (`https://<app-name>-<random>.<region>.azurestaticapps.net`), so the
+  backend would need to allow that pattern too, or you can restrict CORS to
+  production only and accept that previews can't authenticate.
+
+Client-side routes (e.g. shared list URLs) are handled by the
+`navigationFallback` rule in [`public/staticwebapp.config.json`](public/staticwebapp.config.json),
+which tells Azure to serve `index.html` for any request that isn't a static
+asset.
