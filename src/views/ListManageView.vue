@@ -352,7 +352,6 @@ function getItemTypeName(type: number) {
         </div>
         <div class="header-actions">
           <button @click="showShareModal = true" class="btn btn-outline">Udostępnij</button>
-          <button @click="openEditList" class="btn btn-outline">Edytuj listę</button>
           <button @click="openAddItem" class="btn">Dodaj prezent</button>
           <button @click="openDeleteListModal" class="btn btn-outline btn-danger">Usuń listę</button>
         </div>
@@ -448,7 +447,7 @@ function getItemTypeName(type: number) {
                   id="edit-list-name"
                   v-model="listForm.name"
                   required
-                  placeholder="Np. Baby Shower, Urodziny 2024"
+                  placeholder="Np. Urodziny, Wesele, Baby Shower"
                   :disabled="isSavingList"
                   @input="clearListFieldError('name')"
                 />

@@ -226,7 +226,7 @@ function openShareModal(list: ListSummary) {
                 id="new-list-name"
                 v-model="newList.name"
                 required
-                placeholder="Np. Baby Shower, Urodziny 2024"
+                placeholder="Np. Urodziny, Wesele, Baby Shower"
                 :disabled="isCreating"
                 @input="clearCreateFieldError('name')"
               />
@@ -279,7 +279,7 @@ function openShareModal(list: ListSummary) {
                 id="edit-dashboard-list-name"
                 v-model="editListForm.name"
                 required
-                placeholder="Np. Baby Shower, Urodziny 2024"
+                placeholder="Np. Urodziny, Wesele, Baby Shower"
                 :disabled="isEditing"
                 @input="clearEditFieldError('name')"
               />
