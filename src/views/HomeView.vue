@@ -31,12 +31,12 @@ const authStore = useAuthStore()
         <div class="feature-card card">
           <div class="feature-icon">🎁</div>
           <h3>Twórz bez ograniczeń</h3>
-          <p>Dodawaj prezenty singularne, limitowane lub bezlimitowe. Ty decydujesz, czego potrzebujesz.</p>
+          <p>Dodawaj pomysły na prezenty do listy. Ty decydujesz, czego potrzebujesz.</p>
         </div>
         <div class="feature-card card">
           <div class="feature-icon">🔗</div>
           <h3>Dziel się łatwo</h3>
-          <p>Wyślij jeden link bliskim. Nie muszą mieć konta, aby zarezerwować prezent.</p>
+          <p>Wyślij jeden link bliskim. Nie muszą mieć konta, aby zarezerwować prezent i nie zdublować się z innymi.</p>
         </div>
         <div class="feature-card card">
           <div class="feature-icon">🤫</div>
