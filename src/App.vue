@@ -48,7 +48,7 @@ async function saveDisplayName() {
     showDisplayNameModal.value = false
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Nie udało się zapisać nazwy.')
-    displayNameError.value = parsed.message
+    displayNameError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zapisać nazwy.'
   } finally {
     isSavingDisplayName.value = false
   }

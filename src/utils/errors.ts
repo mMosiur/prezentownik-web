@@ -6,65 +6,57 @@ export interface ParsedApiError {
 }
 
 /**
- * Translates common ASP.NET Core Identity & data annotation error messages to Polish.
+ * Maps well-known ASP.NET Core Identity error codes (as used in the `errors`
+ * dictionary of a ProblemDetails/HttpValidationProblemDetails response) to the
+ * actual form field they relate to, so inline validation messages appear
+ * under the correct input instead of only in the general error banner.
+ */
+export const identityErrorCodeToField: Record<string, string> = {
+  duplicateusername: 'email',
+  duplicateemail: 'email',
+  invalidusername: 'email',
+  invalidemail: 'email',
+  passwordtooshort: 'password',
+  passwordrequiresnonalphanumeric: 'password',
+  passwordrequiresdigit: 'password',
+  passwordrequiresupper: 'password',
+  passwordrequireslower: 'password',
+  passwordrequiresuniquechars: 'password',
+  passwordmismatch: 'password',
+  useralreadyhaspassword: 'password',
+}
+
+/**
+ * Standard Identity error codes that represent general/account-level errors
+ * rather than specific input field validation errors.
+ */
+export const generalIdentityErrorCodes = new Set([
+  'concurrencyfailure',
+  'defaulterror',
+  'invalidtoken',
+  'loginalreadyassociated',
+  'userlockoutnotenabled',
+  'useralreadyinrole',
+  'usernotinrole',
+  'invalidrolename',
+  'duplicaterolename',
+  'recoverycoderedemptionfailed',
+  'islockedout',
+  'isnotallowed',
+  'requirestwofactor',
+])
+
+/**
+ * Returns the error message. The backend sends localized Polish error messages
+ * when the Accept-Language: pl header is sent.
  */
 export function translateErrorMessage(message: string): string {
-  if (!message) return ''
-
-  const lower = message.toLowerCase().trim()
-
-  // Invalid login credentials / Identity error codes
-  if (lower === 'failed' || lower.includes('invalid email or password') || lower.includes('invalid credentials')) {
-    return 'Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.'
-  }
-  if (lower === 'islockedout' || lower.includes('locked out') || lower.includes('account is locked')) {
-    return 'Twoje konto zostało tymczasowo zablokowane z powodu zbyt wielu nieudanych prób logowania. Spróbuj ponownie za kilka minut.'
-  }
-  if (lower === 'isnotallowed' || lower.includes('not allowed')) {
-    return 'Logowanie nie jest dozwolone. Twoje konto może być nieaktywne lub zablokowane.'
-  }
-  if (lower === 'requirestwofactor' || lower.includes('two factor') || lower.includes('2fa')) {
-    return 'Wymagana jest weryfikacja dwuetapowa.'
-  }
-
-  // Common ASP.NET Identity registration & password error messages
-  if (lower.includes('already taken') || lower.includes('duplicateusername') || lower.includes('duplicateemail') || lower.includes('is already associated with another account')) {
-    return 'Konto o podanym adresie e-mail już istnieje. Zaloguj się lub użyj innego adresu.'
-  }
-  if (lower.includes('passwords must be at least') || lower.includes('passwordtooshort')) {
-    return 'Hasło musi mieć co najmniej 6 znaków.'
-  }
-  if (lower.includes('passwords must have at least one non alphanumeric') || lower.includes('passwordrequiresnonalphanumeric')) {
-    return 'Hasło musi zawierać co najmniej jeden znak specjalny.'
-  }
-  if (lower.includes('passwords must have at least one digit') || lower.includes('passwordrequiresdigit')) {
-    return 'Hasło musi zawierać co najmniej jedną cyfrę.'
-  }
-  if (lower.includes('passwords must have at least one uppercase') || lower.includes('passwordrequiresupper')) {
-    return 'Hasło musi zawierać co najmniej jedną wielką literę.'
-  }
-  if (lower.includes('passwords must have at least one lowercase') || lower.includes('passwordrequireslower')) {
-    return 'Hasło musi zawierać co najmniej jedną małą literę.'
-  }
-
-  // Email format validation
-  if (lower.includes('not a valid e-mail address') || lower.includes('invalid email') || lower.includes('nieprawidłowy adres email')) {
-    return 'Podaj poprawny adres e-mail.'
-  }
-
-  // Required field validation
-  if (lower.includes('field is required') || lower.includes('is required')) {
-    if (lower.includes('email')) return 'Adres e-mail jest wymagany.'
-    if (lower.includes('password') || lower.includes('hasło')) return 'Hasło jest wymagane.'
-    return 'To pole jest wymagane.'
-  }
-
-  // If already in Polish or unrecognized, return as-is
-  return message
+  return message || ''
 }
 
 /**
  * Parses any API/Axios error into a user-friendly message and dictionary of field errors.
+ * Uses localized error messages sent by the backend and places errors based on Identity error codes.
  */
 export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.'): ParsedApiError {
   if (!axios.isAxiosError(err)) {
@@ -90,21 +82,44 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
 
   const { status, data } = err.response
   const fieldErrors: Record<string, string> = {}
+  const generalMessages: string[] = []
+  const fieldMessages: string[] = []
 
-  // Parse validation error dictionary (e.g. from HttpValidationProblemDetails)
+  // Parse validation error dictionary (e.g. from HttpValidationProblemDetails,
+  // or the Identity error dictionary returned by MapIdentityApi's
+  // /register endpoint, whose keys are Identity error codes like
+  // "DuplicateUserName" or "PasswordTooShort" rather than form field names)
   if (data && typeof data === 'object') {
     const errorsObj = (data as any).errors
     if (errorsObj && typeof errorsObj === 'object') {
       for (const [key, val] of Object.entries(errorsObj)) {
-        if (Array.isArray(val) && val.length > 0) {
-          const translated = val.map((msg: string) => translateErrorMessage(msg)).join(' ')
-          fieldErrors[key] = translated
-          // Normalize key casing (e.g. "email" or "Email")
-          fieldErrors[key.toLowerCase()] = translated
-        } else if (typeof val === 'string') {
-          const translated = translateErrorMessage(val)
-          fieldErrors[key] = translated
-          fieldErrors[key.toLowerCase()] = translated
+        const messages = Array.isArray(val) ? val : (typeof val === 'string' ? [val] : [])
+        if (messages.length === 0) continue
+
+        const formatted = messages.filter(Boolean).join(' ')
+        if (!formatted) continue
+
+        const lowerKey = key.toLowerCase()
+
+        const mappedField = identityErrorCodeToField[lowerKey]
+        if (mappedField) {
+          fieldErrors[mappedField] = fieldErrors[mappedField]
+            ? `${fieldErrors[mappedField]} ${formatted}`
+            : formatted
+          fieldErrors[lowerKey] = formatted
+          fieldErrors[key] = formatted
+          fieldMessages.push(formatted)
+        } else if (generalIdentityErrorCodes.has(lowerKey)) {
+          generalMessages.push(formatted)
+        } else {
+          // Standard form field validation error (e.g. from data annotations / model validation)
+          fieldErrors[key] = fieldErrors[key]
+            ? `${fieldErrors[key]} ${formatted}`
+            : formatted
+          fieldErrors[lowerKey] = fieldErrors[lowerKey]
+            ? `${fieldErrors[lowerKey]} ${formatted}`
+            : formatted
+          fieldMessages.push(formatted)
         }
       }
     }
@@ -112,10 +127,10 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
 
   // Status code specific handling
   if (status === 401) {
-    const detail = data?.detail || data?.title
-    if (detail && typeof detail === 'string') {
+    const detail = data?.detail || data?.message || data?.title
+    if (detail && typeof detail === 'string' && detail !== 'Unauthorized') {
       return {
-        message: translateErrorMessage(detail),
+        message: detail,
         fieldErrors,
       }
     }
@@ -126,10 +141,20 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   }
 
   if (status === 400) {
-    // If we extracted field errors, provide a helpful summary
+    if (generalMessages.length > 0) {
+      const uniqueGeneral = Array.from(new Set(generalMessages))
+      return {
+        message: uniqueGeneral.join(' '),
+        fieldErrors,
+      }
+    }
+
+    // If we extracted field errors and have no general error messages,
+    // do not set a general message so the error is not duplicated both
+    // above the form in the alert banner and under the input field.
     if (Object.keys(fieldErrors).length > 0) {
       return {
-        message: 'Wprowadzone dane formularza zawierają błędy. Popraw je i spróbuj ponownie.',
+        message: '',
         fieldErrors,
       }
     }
@@ -137,7 +162,7 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
     const detail = data?.detail || data?.message || data?.title
     if (detail && typeof detail === 'string' && detail !== 'One or more validation errors occurred.' && detail !== 'Bad Request') {
       return {
-        message: translateErrorMessage(detail),
+        message: detail,
         fieldErrors,
       }
     }
@@ -149,6 +174,13 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   }
 
   if (status === 403) {
+    const detail = data?.detail || data?.message
+    if (detail && typeof detail === 'string') {
+      return {
+        message: detail,
+        fieldErrors,
+      }
+    }
     return {
       message: 'Brak uprawnień do wykonania tej operacji.',
       fieldErrors,
@@ -156,6 +188,13 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   }
 
   if (status === 404) {
+    const detail = data?.detail || data?.message
+    if (detail && typeof detail === 'string') {
+      return {
+        message: detail,
+        fieldErrors,
+      }
+    }
     return {
       message: 'Żądany zasób nie został odnaleziony.',
       fieldErrors,
@@ -163,6 +202,13 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   }
 
   if (status === 423) {
+    const detail = data?.detail || data?.message
+    if (detail && typeof detail === 'string') {
+      return {
+        message: detail,
+        fieldErrors,
+      }
+    }
     return {
       message: 'Twoje konto zostało zablokowane. Spróbuj ponownie później.',
       fieldErrors,
@@ -170,6 +216,13 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   }
 
   if (status === 429) {
+    const detail = data?.detail || data?.message
+    if (detail && typeof detail === 'string') {
+      return {
+        message: detail,
+        fieldErrors,
+      }
+    }
     return {
       message: 'Zbyt wiele prób w krótkim czasie. Odczekaj chwilę przed kolejną próbą.',
       fieldErrors,

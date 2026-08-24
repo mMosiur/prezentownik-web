@@ -132,6 +132,10 @@ async function saveListDetails() {
     listEditError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       listEditFieldErrors.value = { ...parsed.fieldErrors }
+      const hasMatchingFieldError = !!(listEditFieldErrors.value.name || listEditFieldErrors.value.description)
+      if (!hasMatchingFieldError && !listEditError.value) {
+        listEditError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się zaktualizować danych listy.'
+      }
     }
   } finally {
     isSavingList.value = false
@@ -204,7 +208,7 @@ async function saveItem() {
     showItemModal.value = false
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Nie udało się zapisać prezentu.')
-    itemFormError.value = parsed.message
+    itemFormError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zapisać prezentu.'
   } finally {
     isSavingItem.value = false
   }

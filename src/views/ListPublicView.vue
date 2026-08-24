@@ -92,7 +92,7 @@ async function handleClaim() {
     showClaimModal.value = false
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Nie udało się zarezerwować prezentu. Spróbuj ponownie.')
-    error.value = parsed.message
+    error.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zarezerwować prezentu. Spróbuj ponownie.'
   } finally {
     isSubmittingClaim.value = false
   }
@@ -115,7 +115,7 @@ async function confirmUnclaim() {
     itemToUnclaim.value = null
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Nie udało się anulować rezerwacji.')
-    unclaimError.value = parsed.message
+    unclaimError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się anulować rezerwacji.'
   } finally {
     isUnclaiming.value = false
   }

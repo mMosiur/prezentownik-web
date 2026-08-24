@@ -11,6 +11,15 @@ const client = axios.create({
   },
 })
 
+// Interceptor to ensure Accept-Language is always set
+client.interceptors.request.use((config) => {
+  const userLang = localStorage.getItem('user-language') || 'pl'
+  if (config.headers && !config.headers['Accept-Language']) {
+    config.headers['Accept-Language'] = userLang
+  }
+  return config
+})
+
 // Interceptor to handle common error formats
 client.interceptors.response.use(
   (response) => response,

@@ -79,6 +79,10 @@ async function handleCreateList() {
     createError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       createFieldErrors.value = { ...parsed.fieldErrors }
+      const hasMatchingFieldError = !!(createFieldErrors.value.name || createFieldErrors.value.description)
+      if (!hasMatchingFieldError && !createError.value) {
+        createError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się utworzyć listy.'
+      }
     }
   } finally {
     isCreating.value = false
@@ -130,6 +134,10 @@ async function handleUpdateList() {
     editError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       editFieldErrors.value = { ...parsed.fieldErrors }
+      const hasMatchingFieldError = !!(editFieldErrors.value.name || editFieldErrors.value.description)
+      if (!hasMatchingFieldError && !editError.value) {
+        editError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się zaktualizować listy.'
+      }
     }
   } finally {
     isEditing.value = false

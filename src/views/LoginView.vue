@@ -93,6 +93,10 @@ async function handleSubmit() {
     generalError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
+      const hasMatchingFieldError = !!(fieldErrors.value.email || fieldErrors.value.password)
+      if (!hasMatchingFieldError && !generalError.value) {
+        generalError.value = Object.values(parsed.fieldErrors)[0] || 'Logowanie nie powiodło się. Sprawdź swoje dane i spróbuj ponownie.'
+      }
     }
   } finally {
     isSubmitting.value = false
