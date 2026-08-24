@@ -184,6 +184,7 @@ async function handleSubmit() {
             <button
               type="button"
               class="password-toggle-btn"
+              tabindex="-1"
               :aria-label="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
               :title="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
               :disabled="isSubmitting"
@@ -255,6 +256,7 @@ async function handleSubmit() {
             <button
               type="button"
               class="password-toggle-btn"
+              tabindex="-1"
               :aria-label="showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
               :title="showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
               :disabled="isSubmitting"

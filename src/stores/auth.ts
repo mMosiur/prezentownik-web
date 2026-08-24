@@ -60,9 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function logout() {
     try {
-      await client.post('/auth/logout')
-    } catch {
-      // Ignore if logout endpoint fails or doesn't exist
+      // The backend's logout endpoint (ASP.NET Core Identity-style) requires
+      // an empty JSON object body to actually sign the user out and clear the
+      // auth cookie - without it the request fails and the cookie survives.
+      await client.post('/auth/logout', {})
     } finally {
       user.value = null
     }

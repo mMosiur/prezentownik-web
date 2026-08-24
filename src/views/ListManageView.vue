@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import axios from 'axios'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
+import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import ShareListModal from '@/components/ShareListModal.vue'
@@ -9,10 +11,12 @@ import ShareListModal from '@/components/ShareListModal.vue'
 const route = useRoute()
 const router = useRouter()
 const listStore = useListStore()
+const authStore = useAuthStore()
 const listId = route.params.listId as string
 
 const showShareModal = ref(false)
 const redirectedFromPublic = ref(route.query.fromPublic === '1')
+const isNotOwner = ref(false)
 
 const showItemModal = ref(false)
 const editingItem = ref<Item | null>(null)
@@ -59,9 +63,13 @@ const dragOverIndex = ref<number | null>(null)
 onMounted(async () => {
   try {
     await listStore.fetchListDetails(listId)
-  } catch (err: any) {
-    if (err.response?.status === 404) {
-      router.push({ name: 'dashboard' })
+  } catch (err: unknown) {
+    // 401/403 means we're not logged in as the list's owner (or not logged
+    // in at all) - show a dedicated notice instead of a confusing redirect.
+    // 404 is treated the same way, since the backend hides other people's
+    // lists behind a generic "not found" to avoid leaking their existence.
+    if (axios.isAxiosError(err) && [401, 403, 404].includes(err.response?.status ?? 0)) {
+      isNotOwner.value = true
     }
   }
 })
@@ -627,6 +635,20 @@ function getItemTypeName(type: number) {
         @close="showShareModal = false"
       />
     </div>
+    <div v-else-if="isNotOwner" class="not-owner-card card mt-2">
+      <div class="not-owner-icon">🔒</div>
+      <h2>To nie Twoja lista prezentów</h2>
+      <p class="not-owner-desc">
+        Ten adres służy do zarządzania listą i jest przeznaczony wyłącznie dla jej właściciela.
+      </p>
+
+      <div class="not-owner-actions">
+        <p>Otrzymałeś ten link od kogoś?</p>
+        <RouterLink :to="{ name: 'list-public', params: { listId } }" class="btn btn-outline">
+          Zobacz listę jako gość
+        </RouterLink>
+      </div>
+    </div>
     <div v-else class="text-center mt-2">
       <p>Ładowanie szczegółów listy...</p>
     </div>
@@ -958,6 +980,32 @@ function getItemTypeName(type: number) {
 .empty-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
+}
+
+.not-owner-card {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem;
+  text-align: center;
+}
+
+.not-owner-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.not-owner-desc {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.5;
+  margin-top: 0.5rem;
+}
+
+.not-owner-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.75rem;
 }
 
 @media (max-width: 600px) {

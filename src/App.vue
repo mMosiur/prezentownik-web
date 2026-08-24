@@ -15,8 +15,11 @@ const displayNameError = ref('')
 const iconUrl = `${import.meta.env.BASE_URL}prezentownik-icon.svg`
 
 async function handleLogout() {
-  await authStore.logout()
-  router.push({ name: 'home' })
+  try {
+    await authStore.logout()
+  } finally {
+    router.push({ name: 'home' })
+  }
 }
 
 function openDisplayNameModal() {

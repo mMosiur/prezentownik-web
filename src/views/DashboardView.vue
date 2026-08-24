@@ -196,7 +196,6 @@ function openShareModal(list: ListSummary) {
           <p v-if="list.description" class="description">{{ list.description }}</p>
         </div>
         <div class="card-footer" @click.stop>
-          <button @click="openEditModal(list)" class="btn btn-sm btn-outline">Edytuj</button>
           <button @click="goToList(list.id)" class="btn btn-sm btn-outline">Zarządzaj</button>
           <button @click="openShareModal(list)" class="btn btn-sm btn-outline">Udostępnij</button>
           <button @click="openDeleteModal(list)" class="btn btn-sm btn-outline btn-danger">Usuń</button>

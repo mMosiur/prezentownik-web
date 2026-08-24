@@ -32,7 +32,6 @@ const router = createRouter({
       path: '/dashboard/lists/:listId',
       name: 'list-manage',
       component: () => import('../views/ListManageView.vue'),
-      meta: { auth: true }
     },
     {
       path: '/lists/:listId',
