@@ -8,7 +8,7 @@ const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 
-const email = ref('')
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const password = ref('')
 const rememberMe = ref(true)
 const showPassword = ref(false)
@@ -22,6 +22,9 @@ const isEmailNotConfirmed = ref(false)
 onMounted(() => {
   if (route.query.registered === 'true') {
     showRegisteredSuccess.value = true
+  }
+  if (typeof route.query.email === 'string' && !email.value) {
+    email.value = route.query.email
   }
 })
 
@@ -134,7 +137,15 @@ async function handleSubmit() {
         </div>
         <div class="alert-body">
           <span class="alert-title">Konto zostało utworzone!</span>
-          <span class="alert-desc">Możesz się teraz zalogować za pomocą swoich danych.</span>
+          <span class="alert-desc">
+            Na Twój adres e-mail wysłaliśmy link potwierdzający. Sprawdź swoją skrzynkę pocztową i aktywuj konto, aby móc się zalogować.
+          </span>
+          <RouterLink
+            :to="{ name: 'resend-confirmation', query: email ? { email } : {} }"
+            class="auth-link alert-action-link"
+          >
+            Nie otrzymałeś wiadomości? Wyślij link ponownie
+          </RouterLink>
         </div>
         <button
           type="button"
@@ -593,6 +604,7 @@ async function handleSubmit() {
   display: inline-block;
   margin-top: 0.35rem;
   font-size: 0.9rem;
+  margin-left: 0;
 }
 
 .auth-link {
@@ -617,4 +629,3 @@ async function handleSubmit() {
   }
 }
 </style>
-style>

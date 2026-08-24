@@ -81,7 +81,7 @@ async function handleSubmit() {
       email: email.value, 
       password: password.value
     })
-    router.push({ name: 'login', query: { registered: 'true' } })
+    router.push({ name: 'login', query: { registered: 'true', email: email.value } })
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Rejestracja nie powiodła się. Spróbuj ponownie.')
     generalError.value = parsed.message
