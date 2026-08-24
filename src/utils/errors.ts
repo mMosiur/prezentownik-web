@@ -3,6 +3,32 @@ import axios from 'axios'
 export interface ParsedApiError {
   message: string
   fieldErrors: Record<string, string>
+  /**
+   * Machine-readable code for well-known error scenarios that the UI may
+   * want to react to specially (e.g. show a dedicated call to action),
+   * in addition to the human-readable `message`.
+   */
+  code?: string
+}
+
+/**
+ * Maps the raw `SignInResult.ToString()` values returned by the MapIdentityApi
+ * `/login` endpoint (as the ProblemDetails `detail`) to a friendly Polish
+ * message and a machine-readable `code` the UI can react to.
+ */
+const signInResultMessages: Record<string, { message: string; code: string }> = {
+  notallowed: {
+    message: 'Twoje konto nie zostało jeszcze potwierdzone. Sprawdź swoją skrzynkę pocztową i kliknij link potwierdzający, aby móc się zalogować.',
+    code: 'email-not-confirmed',
+  },
+  lockedout: {
+    message: 'Twoje konto zostało tymczasowo zablokowane z powodu zbyt wielu nieudanych prób logowania. Spróbuj ponownie później.',
+    code: 'locked-out',
+  },
+  failed: {
+    message: 'Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.',
+    code: 'invalid-credentials',
+  },
 }
 
 /**
@@ -128,10 +154,20 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   // Status code specific handling
   if (status === 401) {
     const detail = data?.detail || data?.message || data?.title
-    if (detail && typeof detail === 'string' && detail !== 'Unauthorized') {
-      return {
-        message: detail,
-        fieldErrors,
+    if (detail && typeof detail === 'string') {
+      const known = signInResultMessages[detail.toLowerCase()]
+      if (known) {
+        return {
+          message: known.message,
+          fieldErrors,
+          code: known.code,
+        }
+      }
+      if (detail !== 'Unauthorized') {
+        return {
+          message: detail,
+          fieldErrors,
+        }
       }
     }
     return {

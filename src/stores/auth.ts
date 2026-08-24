@@ -11,6 +11,9 @@ export interface UserInfo {
 export type LoginRequest = components['schemas']['LoginRequest']
 export type RegisterRequest = components['schemas']['RegisterRequest']
 export type UpdateUserInfoRequest = components['schemas']['UpdateUserInfoRequest']
+export type ResendConfirmationEmailRequest = components['schemas']['ResendConfirmationEmailRequest']
+export type ForgotPasswordRequest = components['schemas']['ForgotPasswordRequest']
+export type ResetPasswordRequest = components['schemas']['ResetPasswordRequest']
 
 export interface LoginOptions {
   useCookies?: boolean
@@ -58,6 +61,28 @@ export const useAuthStore = defineStore('auth', () => {
     await client.post('/auth/register', data)
   }
 
+  async function confirmEmail(userId: string, code: string, changedEmail?: string) {
+    const params = new URLSearchParams()
+    params.set('userId', userId)
+    params.set('code', code)
+    if (changedEmail) {
+      params.set('changedEmail', changedEmail)
+    }
+    await client.get(`/auth/confirmEmail?${params.toString()}`)
+  }
+
+  async function resendConfirmationEmail(data: ResendConfirmationEmailRequest) {
+    await client.post('/auth/resendConfirmationEmail', data)
+  }
+
+  async function forgotPassword(data: ForgotPasswordRequest) {
+    await client.post('/auth/forgotPassword', data)
+  }
+
+  async function resetPassword(data: ResetPasswordRequest) {
+    await client.post('/auth/resetPassword', data)
+  }
+
   async function logout() {
     try {
       // The backend's logout endpoint (ASP.NET Core Identity-style) requires
@@ -69,5 +94,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, isAuthenticated, isLoading, fetchUser, updateUser, login, register, logout }
+  return {
+    user,
+    isAuthenticated,
+    isLoading,
+    fetchUser,
+    updateUser,
+    login,
+    register,
+    logout,
+    confirmEmail,
+    resendConfirmationEmail,
+    forgotPassword,
+    resetPassword,
+  }
 })

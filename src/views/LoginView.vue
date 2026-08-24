@@ -17,6 +17,7 @@ const isSubmitting = ref(false)
 const generalError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const showRegisteredSuccess = ref(false)
+const isEmailNotConfirmed = ref(false)
 
 onMounted(() => {
   if (route.query.registered === 'true') {
@@ -31,6 +32,7 @@ function clearFieldError(field: string) {
   // Clear general credentials error when user starts typing again
   if (generalError.value) {
     generalError.value = ''
+    isEmailNotConfirmed.value = false
   }
 }
 
@@ -74,6 +76,7 @@ async function handleSubmit() {
   generalError.value = ''
   fieldErrors.value = {}
   showRegisteredSuccess.value = false
+  isEmailNotConfirmed.value = false
 
   try {
     await authStore.login(
@@ -91,6 +94,7 @@ async function handleSubmit() {
   } catch (err: unknown) {
     const parsed = parseApiError(err, 'Logowanie nie powiodło się. Sprawdź swoje dane i spróbuj ponownie.')
     generalError.value = parsed.message
+    isEmailNotConfirmed.value = parsed.code === 'email-not-confirmed'
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(fieldErrors.value.email || fieldErrors.value.password)
@@ -160,12 +164,19 @@ async function handleSubmit() {
         </div>
         <div class="alert-body">
           <span class="alert-desc">{{ generalError }}</span>
+          <RouterLink
+            v-if="isEmailNotConfirmed"
+            :to="{ name: 'resend-confirmation', query: { email } }"
+            class="auth-link alert-action-link"
+          >
+            Wyślij link potwierdzający ponownie
+          </RouterLink>
         </div>
         <button
           type="button"
           class="alert-close"
           aria-label="Zamknij komunikat o błędzie"
-          @click="generalError = ''"
+          @click="generalError = ''; isEmailNotConfirmed = false"
         >
           &times;
         </button>
@@ -287,6 +298,7 @@ async function handleSubmit() {
             <span class="checkbox-checkmark"></span>
             <span class="checkbox-label">Zapamiętaj mnie na tym urządzeniu</span>
           </label>
+          <RouterLink :to="{ name: 'forgot-password' }" class="auth-link forgot-password-link">Nie pamiętasz hasła?</RouterLink>
         </div>
 
         <!-- Submit Button -->
@@ -305,6 +317,10 @@ async function handleSubmit() {
         <p>
           Nie masz jeszcze konta?
           <RouterLink :to="{ name: 'register' }" class="auth-link">Zarejestruj się</RouterLink>
+        </p>
+        <p class="mt-1">
+          Nie otrzymałeś e-maila potwierdzającego?
+          <RouterLink :to="{ name: 'resend-confirmation' }" class="auth-link">Wyślij ponownie</RouterLink>
         </p>
       </div>
     </div>
@@ -522,6 +538,18 @@ async function handleSubmit() {
   accent-color: var(--color-accent);
 }
 
+.forgot-password-link {
+  font-size: 0.9rem;
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+.forgot-password-link:hover {
+  opacity: 0.8;
+}
+
 /* Submit Button & Spinner */
 .btn-block {
   width: 100%;
@@ -561,6 +589,12 @@ async function handleSubmit() {
   color: #5a736e;
 }
 
+.alert-action-link {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: 0.9rem;
+}
+
 .auth-link {
   color: var(--color-accent);
   font-weight: 700;
@@ -583,3 +617,4 @@ async function handleSubmit() {
   }
 }
 </style>
+style>
