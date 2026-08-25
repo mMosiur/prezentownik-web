@@ -421,6 +421,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Sign the current user out and clear the auth cookie */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/me": {
         parameters: {
             query?: never;
@@ -1019,9 +1053,14 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
                     };
+                    content?: never;
                 };
             };
         };
@@ -1052,9 +1091,7 @@ export interface paths {
                     headers: {
                         [name: string]: unknown;
                     };
-                    content: {
-                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                    };
+                    content?: never;
                 };
                 /** @description Forbidden */
                 403: {
@@ -1070,6 +1107,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lists/claims/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Adopt unauthenticated claims by revocation tokens for the current user */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["AdoptClaimsRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["AdoptClaimsResponse"];
+                    };
+                };
+                /** @description Bad Request */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                    };
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/problem+json": components["schemas"]["ProblemDetails"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1080,6 +1175,13 @@ export interface components {
             /** Format: int64 */
             expiresIn: number | string;
             refreshToken: string;
+        };
+        AdoptClaimsRequest: {
+            revocationTokens: string[];
+        };
+        AdoptClaimsResponse: {
+            /** Format: int32 */
+            adoptedClaimsCount: number | string;
         };
         CreateClaimRequest: {
             /** Format: int32 */
@@ -1160,6 +1262,10 @@ export interface components {
             claimerName: null | string;
             /** Format: int32 */
             quantityClaimed: number | string;
+            /** @default false */
+            isMyClaim: boolean;
+            /** Format: uuid */
+            revocationToken?: null | string;
         };
         PublicItemDto: {
             /** Format: uuid */
@@ -1174,6 +1280,8 @@ export interface components {
             /** Format: int32 */
             totalClaimed: number | string;
             claims: components["schemas"]["PublicClaimDto"][];
+            /** @default false */
+            isClaimedByCurrentUser: boolean;
         };
         PublicListDto: {
             name: string;

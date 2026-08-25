@@ -72,7 +72,7 @@ useEscapeKey(() => {
 function openClaim(item: PublicItem) {
   selectedItem.value = item
   claimForm.value = {
-    claimerName: '',
+    claimerName: authStore.user?.displayName || '',
     quantityClaimed: 1
   }
   error.value = ''
@@ -122,7 +122,8 @@ async function confirmUnclaim() {
 }
 
 function isClaimedByMe(itemId: string) {
-  return !!claimStore.getRevocationToken(itemId)
+  const item = claimStore.currentPublicList?.items?.find(i => i.id === itemId)
+  return Boolean(item?.isClaimedByCurrentUser) || Boolean(claimStore.getRevocationToken(itemId))
 }
 
 function getProgress(item: PublicItem) {

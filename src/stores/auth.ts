@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import client from '@/api/client'
 import type { components } from '@/api/schema'
+import { useClaimStore } from '@/stores/claim'
 
 export interface UserInfo {
   email: string
@@ -31,6 +32,10 @@ export const useAuthStore = defineStore('auth', () => {
       // Use /auth/me as verified in backend code
       const response = await client.get<UserInfo>('/auth/me')
       user.value = response.data
+      if (user.value) {
+        const claimStore = useClaimStore()
+        await claimStore.adoptStoredClaims()
+      }
     } catch (error) {
       user.value = null
     } finally {

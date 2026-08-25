@@ -8,6 +8,8 @@ export type PublicItem = components['schemas']['PublicItemDto']
 export type PublicClaim = components['schemas']['PublicClaimDto']
 export type CreateClaimRequest = components['schemas']['CreateClaimRequest']
 export type CreateClaimResponse = components['schemas']['CreateClaimResponse']
+export type AdoptClaimsRequest = components['schemas']['AdoptClaimsRequest']
+export type AdoptClaimsResponse = components['schemas']['AdoptClaimsResponse']
 
 export const useClaimStore = defineStore('claim', () => {
   const currentPublicList = ref<PublicList | null>(null)
@@ -25,6 +27,33 @@ export const useClaimStore = defineStore('claim', () => {
     localStorage.removeItem(`claim_${itemId}`)
   }
 
+  function getAllStoredRevocationTokens(): string[] {
+    const tokens: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.startsWith('claim_')) {
+        const token = localStorage.getItem(key)
+        if (token) {
+          tokens.push(token)
+        }
+      }
+    }
+    return tokens
+  }
+
+  async function adoptStoredClaims() {
+    const tokens = getAllStoredRevocationTokens()
+    if (tokens.length === 0) return
+
+    try {
+      await client.post<AdoptClaimsResponse>('/lists/claims/adopt', {
+        revocationTokens: tokens
+      })
+    } catch (error) {
+      console.error('Failed to adopt stored claims', error)
+    }
+  }
+
   async function fetchPublicList(listId: string) {
     isLoading.value = true
     try {
@@ -33,6 +62,15 @@ export const useClaimStore = defineStore('claim', () => {
       // Sort items by orderNumber ascending
       if (currentPublicList.value.items) {
         currentPublicList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+        for (const item of currentPublicList.value.items) {
+          if (item.claims) {
+            for (const claim of item.claims) {
+              if (claim.revocationToken) {
+                setRevocationToken(item.id, claim.revocationToken)
+              }
+            }
+          }
+        }
       }
     } finally {
       isLoading.value = false
@@ -47,10 +85,9 @@ export const useClaimStore = defineStore('claim', () => {
 
   async function unclaimItem(listId: string, itemId: string) {
     const token = getRevocationToken(itemId)
-    if (!token) return
 
     await client.delete(`/lists/${listId}/items/${itemId}/claims`, {
-      params: { revocationToken: token }
+      params: token ? { revocationToken: token } : undefined
     })
     removeRevocationToken(itemId)
     await fetchPublicList(listId)
@@ -59,6 +96,7 @@ export const useClaimStore = defineStore('claim', () => {
   return { 
     currentPublicList, isLoading, 
     fetchPublicList, claimItem, unclaimItem,
-    getRevocationToken
+    getRevocationToken, setRevocationToken, removeRevocationToken,
+    getAllStoredRevocationTokens, adoptStoredClaims
   }
 })
