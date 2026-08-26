@@ -1180,17 +1180,16 @@ export interface components {
             revocationTokens: string[];
         };
         AdoptClaimsResponse: {
-            /** Format: int32 */
-            adoptedClaimsCount: number | string;
+            adoptedClaimsRevocationTokens: string[];
         };
         CreateClaimRequest: {
             /** Format: int32 */
             quantityClaimed: number | string;
-            claimerName: null | string;
+            claimantName: null | string;
         };
         CreateClaimResponse: {
             /** Format: uuid */
-            revocationToken: string;
+            revocationToken: null | string;
         };
         CreateGiftListRequest: {
             name: string;
@@ -1259,7 +1258,7 @@ export interface components {
             instance?: null | string;
         };
         PublicClaimDto: {
-            claimerName: null | string;
+            claimantName: null | string;
             /** Format: int32 */
             quantityClaimed: number | string;
             /** @default false */

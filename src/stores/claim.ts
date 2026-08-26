@@ -79,7 +79,9 @@ export const useClaimStore = defineStore('claim', () => {
 
   async function claimItem(listId: string, itemId: string, request: CreateClaimRequest) {
     const response = await client.post<CreateClaimResponse>(`/lists/${listId}/items/${itemId}/claims`, request)
-    setRevocationToken(itemId, response.data.revocationToken)
+    if (response.data.revocationToken) {
+      setRevocationToken(itemId, response.data.revocationToken)
+    }
     await fetchPublicList(listId)
   }
 

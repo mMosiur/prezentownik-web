@@ -24,7 +24,7 @@ const isGuideExpanded = ref(false)
 const showClaimModal = ref(false)
 const selectedItem = ref<PublicItem | null>(null)
 const claimForm = ref({
-  claimerName: '',
+  claimantName: '',
   quantityClaimed: 1
 })
 const error = ref('')
@@ -75,7 +75,7 @@ useEscapeKey(() => {
 function openClaim(item: PublicItem) {
   selectedItem.value = item
   claimForm.value = {
-    claimerName: authStore.user?.displayName || '',
+    claimantName: authStore.user?.displayName || '',
     quantityClaimed: 1
   }
   error.value = ''
@@ -89,7 +89,7 @@ async function handleClaim() {
   isSubmittingClaim.value = true
   try {
     await claimStore.claimItem(listId, selectedItem.value.id, {
-      claimerName: claimForm.value.claimerName.trim() || null,
+      claimantName: claimForm.value.claimantName.trim() || null,
       quantityClaimed: claimForm.value.quantityClaimed
     })
     showClaimModal.value = false
@@ -223,7 +223,7 @@ function getProgress(item: PublicItem) {
                 <p class="claims-label">{{ t('listPublic.whoClaimed') }}</p>
                 <ul>
                   <li v-for="(claim, claimIndex) in item.claims" :key="claimIndex">
-                    {{ claim.claimerName || t('listPublic.anonymousClaimer') }}
+                    {{ claim.claimantName || t('listPublic.anonymousClaimant') }}
                     <span v-if="item.type !== 0" class="claim-qty">&times;{{ claim.quantityClaimed }}</span>
                   </li>
                 </ul>
@@ -261,7 +261,7 @@ function getProgress(item: PublicItem) {
             <form @submit.prevent="handleClaim" class="mt-1">
               <div class="form-group">
                 <label>{{ t('listPublic.claimModal.nameLabel') }}</label>
-                <input v-model="claimForm.claimerName" :placeholder="t('listPublic.claimModal.namePlaceholder')" :disabled="isSubmittingClaim" />
+                <input v-model="claimForm.claimantName" :placeholder="t('listPublic.claimModal.namePlaceholder')" :disabled="isSubmittingClaim" />
               </div>
               <div v-if="selectedItem.type === 1" class="form-group">
                 <label>{{ t('listPublic.claimModal.quantityLabel') }}</label>
