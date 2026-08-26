@@ -718,12 +718,16 @@ function getItemTypeName(type: number) {
 .header-content h1 {
   font-size: 2.25rem;
   margin-bottom: 0.25rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .list-description-text {
   color: #666;
   font-size: 1.1rem;
   margin-top: 0.25rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .header-actions {
@@ -868,9 +872,9 @@ function getItemTypeName(type: number) {
 .item-main h3 {
   font-size: 1.05rem;
   margin-bottom: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
   min-width: 0;
   max-width: 100%;
   flex-shrink: 1;
@@ -889,9 +893,9 @@ function getItemTypeName(type: number) {
 .item-description {
   color: #666;
   font-size: 0.85rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
   flex-basis: 100%;
 }
 
@@ -1024,27 +1028,69 @@ function getItemTypeName(type: number) {
 
 @media (max-width: 600px) {
   .list-details-header {
-    padding: 1.5rem;
+    padding: 1.25rem 1rem;
     text-align: center;
     justify-content: center;
+    gap: 1rem;
   }
   
+  .header-content h1 {
+    font-size: 1.6rem;
+  }
+
+  .header-title-row {
+    justify-content: center;
+  }
+
   .header-actions {
+    flex-direction: column;
     width: 100%;
+    gap: 0.5rem;
   }
   
   .header-actions .btn {
     width: 100%;
   }
   
+  .item-card {
+    padding: 0.65rem 0.65rem;
+  }
+
   .item-content {
     flex-direction: column;
     align-items: stretch;
+    gap: 0.5rem;
   }
   
   .item-actions {
-    margin-top: 1rem;
+    margin-top: 0.5rem;
     justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .item-actions .btn-sm {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
+
+  .item-card {
+    gap: 0.5rem;
+  }
+
+  .item-order {
+    padding-right: 0.5rem;
   }
 }
 </style>

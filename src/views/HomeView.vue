@@ -63,6 +63,8 @@ h1 {
   font-size: 3rem;
   line-height: 1.2;
   margin-bottom: 1.5rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .hero-subtitle {
@@ -70,6 +72,8 @@ h1 {
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .btn-lg {
@@ -83,7 +87,7 @@ h1 {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 250px), 1fr));
   gap: 2rem;
   margin-top: 2rem;
 }
@@ -106,6 +110,8 @@ h1 {
 .feature-card h3 {
   margin-bottom: 1rem;
   font-size: 1.5rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 @media (max-width: 768px) {
@@ -133,12 +139,34 @@ h1 {
 }
 
 @media (max-width: 480px) {
+  .hero-section {
+    padding: 1rem 0.5rem;
+  }
+
+  .hero-card {
+    padding: 2rem 1rem;
+  }
+
   h1 {
-    font-size: 1.85rem;
+    font-size: 1.75rem;
   }
   
   .hero-subtitle {
-    font-size: 1.1rem;
+    font-size: 1rem;
+  }
+
+  .btn-lg {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem 1rem;
   }
 }
 </style>

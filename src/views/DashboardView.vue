@@ -410,6 +410,8 @@ function openShareModal(list: ListSummary) {
 .list-card h3 {
   margin-bottom: 0.5rem;
   font-size: 1.3rem;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .description {
@@ -420,6 +422,8 @@ function openShareModal(list: ListSummary) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .card-footer {
@@ -563,13 +567,48 @@ function openShareModal(list: ListSummary) {
   margin-top: 0.5rem;
 }
 
+@media (max-width: 600px) {
+  .dashboard-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .dashboard-header .btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 480px) {
   .dashboard-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
   }
   
   .list-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .list-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .card-footer {
+    gap: 0.4rem;
+  }
+
+  .card-footer .btn {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
   }
 }
 </style>

@@ -185,5 +185,18 @@ function selectInput(event: FocusEvent) {
   .share-link-row {
     flex-direction: column;
   }
+
+  .share-copy-btn {
+    width: 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
 }
 </style>

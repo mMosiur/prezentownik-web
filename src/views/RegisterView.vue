@@ -562,12 +562,16 @@ async function handleSubmit() {
 
 @media (max-width: 480px) {
   .auth-card {
-    padding: 1.5rem 1.25rem;
+    padding: 1.5rem 1rem;
     margin: 1.25rem auto;
   }
 
   .auth-header h1 {
-    font-size: 1.75rem;
+    font-size: 1.6rem;
+  }
+
+  .alert {
+    padding: 0.75rem 0.85rem;
   }
 }
 </style>

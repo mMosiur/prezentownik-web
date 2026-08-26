@@ -127,4 +127,15 @@ onMounted(async () => {
     transform: rotate(360deg);
   }
 }
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 1.5rem 1rem;
+    margin: 1.25rem auto;
+  }
+
+  .auth-header h1 {
+    font-size: 1.6rem;
+  }
+}
 </style>

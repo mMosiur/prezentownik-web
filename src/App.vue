@@ -10,7 +10,7 @@ import { useLanguage } from '@/composables/useLanguage'
 const { t } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
-const { currentLang, changeLanguage } = useLanguage()
+const { currentLang, changeLanguage, supportedLanguages } = useLanguage()
 
 const showDisplayNameModal = ref(false)
 const displayNameInput = ref('')
@@ -88,26 +88,21 @@ async function saveDisplayName() {
           <RouterLink :to="{ name: 'register' }" class="btn btn-sm">{{ t('nav.register') }}</RouterLink>
         </template>
 
-        <div class="lang-switcher">
-          <button
-            type="button"
-            class="lang-btn"
-            :class="{ active: currentLang === 'pl' }"
-            @click="changeLanguage('pl')"
-            title="Polski"
+        <div class="lang-selector">
+          <select
+            :value="currentLang"
+            @change="changeLanguage(($event.target as HTMLSelectElement).value)"
+            class="lang-select"
+            :aria-label="t('nav.language')"
           >
-            PL
-          </button>
-          <span class="lang-divider">/</span>
-          <button
-            type="button"
-            class="lang-btn"
-            :class="{ active: currentLang === 'en' }"
-            @click="changeLanguage('en')"
-            title="English"
-          >
-            EN
-          </button>
+            <option
+              v-for="lang in supportedLanguages"
+              :key="lang.code"
+              :value="lang.code"
+            >
+              {{ lang.code.toUpperCase() }}
+            </option>
+          </select>
         </div>
       </nav>
     </div>
@@ -232,41 +227,40 @@ async function saveDisplayName() {
   white-space: nowrap;
 }
 
-.lang-switcher {
+.lang-selector {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-background-mute);
+}
+
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--color-background-mute);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234f6d68' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.55rem center;
+  background-size: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 1.6rem 0.35rem 0.65rem;
+  font-family: inherit;
   font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.lang-btn {
-  background: none;
-  border: none;
-  padding: 0.15rem 0.35rem;
-  cursor: pointer;
+  font-weight: 500;
   color: var(--color-text);
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 4px;
-  transition: background-color 0.15s, color 0.15s;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 
-.lang-btn:hover {
-  color: var(--color-accent);
+.lang-select:hover {
+  border-color: var(--color-border-hover);
+  background-color: #ffffff;
 }
 
-.lang-btn.active {
-  color: #fff;
-  background-color: var(--color-accent);
-}
-
-.lang-divider {
-  color: var(--color-border);
-  font-size: 0.8rem;
+.lang-select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
 .modal-overlay {
@@ -350,26 +344,66 @@ async function saveDisplayName() {
   font-size: 0.85rem;
 }
 
+@media (max-width: 640px) {
+  .nav-wrapper {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .main-nav {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .welcome-text {
+    display: none;
+  }
+}
+
 @media (max-width: 480px) {
   .brand {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
+    gap: 0.4rem;
   }
 
   .brand-icon {
-    width: 2rem;
-    height: 2rem;
+    width: 1.75rem;
+    height: 1.75rem;
   }
   
   .main-nav {
-    gap: 0.75rem;
+    gap: 0.35rem;
   }
   
   .nav-link {
     font-size: 0.85rem;
   }
 
-  .welcome-text {
-    display: none;
+  .btn-sm {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .set-name-btn {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .lang-select {
+    padding: 0.25rem 1.4rem 0.25rem 0.5rem;
+    font-size: 0.8rem;
+    background-position: right 0.35rem center;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
   }
 }
 </style>

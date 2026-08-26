@@ -300,6 +300,8 @@ function getProgress(item: PublicItem) {
 h1 {
   font-size: 2.5rem;
   margin-bottom: 0.25rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .list-name {
@@ -307,6 +309,8 @@ h1 {
   color: var(--color-text);
   font-weight: 400;
   margin-bottom: 1rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .list-description {
@@ -314,11 +318,13 @@ h1 {
   margin: 0 auto;
   font-size: 1.1rem;
   color: #666;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 1.5rem;
 }
 
@@ -328,6 +334,7 @@ h1 {
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .empty-state {
@@ -345,6 +352,8 @@ h1 {
 .item-info h3 {
   font-size: 1.2rem;
   margin-bottom: 0.35rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .item-description {
@@ -356,6 +365,8 @@ h1 {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .claims-list {
@@ -386,6 +397,9 @@ h1 {
   background: var(--color-accent-soft);
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .claim-qty {
@@ -425,6 +439,8 @@ h1 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .badge {
@@ -521,15 +537,44 @@ h1 {
 
 @media (max-width: 480px) {
   .header-card {
-    padding: 2rem 1rem;
+    padding: 1.75rem 1rem;
+    margin-bottom: 1.5rem;
   }
   
   h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+
+  .list-name {
+    font-size: 1.25rem;
   }
   
   .items-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .my-claim {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .my-claim .badge {
+    text-align: center;
+  }
+
+  .my-claim .btn {
+    width: 100%;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
   }
 }
 </style>
