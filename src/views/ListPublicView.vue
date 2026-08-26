@@ -19,6 +19,7 @@ const listId = route.params.listId as string
 // should be surprised by the gifts.
 const isCheckingOwnership = ref(true)
 const loadError = ref(false)
+const isGuideExpanded = ref(false)
 
 const showClaimModal = ref(false)
 const selectedItem = ref<PublicItem | null>(null)
@@ -139,12 +140,57 @@ function getProgress(item: PublicItem) {
     <div v-if="claimStore.currentPublicList && !isCheckingOwnership">
       <header class="public-header text-center">
         <div class="card header-card">
-          <p class="owner-prefix">{{ t('listPublic.ownerPrefix') }}</p>
-          <h1>{{ claimStore.currentPublicList.ownerDisplayName || t('listPublic.anonymousOwner') }}</h1>
-          <h2 class="list-name">{{ claimStore.currentPublicList.name }}</h2>
+          <p class="owner-info">
+            <span class="owner-prefix">{{ t('listPublic.ownerPrefix') }}</span>
+            <span class="owner-name">{{ claimStore.currentPublicList.ownerDisplayName || t('listPublic.anonymousOwner') }}</span>
+          </p>
+          <h1 class="list-title">{{ claimStore.currentPublicList.name }}</h1>
+          
           <p v-if="claimStore.currentPublicList.description" class="list-description">
             {{ claimStore.currentPublicList.description }}
           </p>
+
+          <div class="hero-guide" :class="{ 'is-expanded': isGuideExpanded }">
+            <button 
+              type="button" 
+              class="guide-header-btn" 
+              @click="isGuideExpanded = !isGuideExpanded"
+              :aria-expanded="isGuideExpanded"
+              aria-controls="hero-guide-content"
+            >
+              <div class="guide-header-left">
+                <span class="guide-icon">🎁</span>
+                <span class="guide-title">{{ t('listPublic.guideTitle') }}</span>
+              </div>
+              <span class="guide-chevron" :class="{ 'is-rotated': isGuideExpanded }" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="m6 9 6 6 6-6"/>
+                </svg>
+              </span>
+            </button>
+            <div v-show="isGuideExpanded" id="hero-guide-content" class="guide-body">
+              <p class="guide-lead">
+                {{ t('listPublic.guideLead') }}
+              </p>
+              <p class="guide-how-it-works">
+                {{ t('listPublic.guideHowItWorks') }}
+              </p>
+              <div class="guide-steps">
+                <div class="guide-step">
+                  <span class="step-num">1</span>
+                  <span>{{ t('listPublic.guideStep1') }}</span>
+                </div>
+                <div class="guide-step">
+                  <span class="step-num">2</span>
+                  <span>{{ t('listPublic.guideStep2') }}</span>
+                </div>
+                <div class="guide-step">
+                  <span class="step-num">3</span>
+                  <span>{{ t('listPublic.guideStep3') }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -284,31 +330,39 @@ function getProgress(item: PublicItem) {
 
 <style scoped>
 .header-card {
-  padding: 3rem 1rem;
+  padding: 3rem 1.5rem;
   margin-bottom: 2.5rem;
 }
 
+.owner-info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
 .owner-prefix {
-  font-size: 0.9rem;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   color: var(--color-accent);
-  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.owner-name {
+  color: var(--color-heading);
   font-weight: 700;
+  font-size: 1rem;
 }
 
-h1 {
-  font-size: 2.5rem;
-  margin-bottom: 0.25rem;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.list-name {
-  font-size: 1.5rem;
-  color: var(--color-text);
-  font-weight: 400;
-  margin-bottom: 1rem;
+.list-title {
+  font-size: 2.75rem;
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+  color: var(--color-heading);
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -320,6 +374,133 @@ h1 {
   color: #666;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+.hero-guide {
+  max-width: 620px;
+  margin: 1.5rem auto 0;
+  background: var(--color-accent-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  text-align: left;
+  overflow: hidden;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+
+.hero-guide:hover {
+  border-color: var(--color-border-hover);
+}
+
+.guide-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: var(--color-heading);
+  transition: background-color 0.15s;
+}
+
+.guide-header-btn:hover {
+  background-color: rgba(79, 109, 104, 0.08);
+}
+
+.guide-header-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
+}
+
+.guide-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guide-icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.guide-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.guide-chevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-accent);
+  transition: transform 0.25s ease;
+}
+
+.guide-chevron.is-rotated {
+  transform: rotate(180deg);
+}
+
+.guide-body {
+  padding: 0 1.25rem 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(79, 109, 104, 0.12);
+  padding-top: 0.85rem;
+}
+
+.guide-lead {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-heading);
+}
+
+.guide-how-it-works {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--color-text);
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.guide-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.guide-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 20px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--color-heading);
+}
+
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--color-accent);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .items-grid {
@@ -541,12 +722,52 @@ h1 {
     margin-bottom: 1.5rem;
   }
   
-  h1 {
-    font-size: 1.75rem;
+  .list-title {
+    font-size: 1.85rem;
   }
 
-  .list-name {
-    font-size: 1.25rem;
+  .owner-info {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .owner-name {
+    font-size: 0.9rem;
+  }
+
+  .hero-guide {
+    margin-top: 1.25rem;
+  }
+
+  .guide-header-btn {
+    padding: 0.65rem 0.85rem;
+  }
+
+  .guide-title {
+    font-size: 0.95rem;
+  }
+
+  .guide-body {
+    padding: 0 0.85rem 0.85rem 0.85rem;
+    padding-top: 0.75rem;
+  }
+
+  .guide-lead {
+    font-size: 0.9rem;
+  }
+
+  .guide-how-it-works {
+    font-size: 0.85rem;
+  }
+
+  .guide-steps {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .guide-step {
+    width: 100%;
+    box-sizing: border-box;
   }
   
   .items-grid {

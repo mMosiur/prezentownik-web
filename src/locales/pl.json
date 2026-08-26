@@ -32,13 +32,13 @@
     }
   },
   "app": {
-    "footerText": "© 2026 Prezentownik. Stworzone z myślą o pięknych chwilach.",
+    "footerText": "2026 Prezentownik.info.pl",
     "displayNameModal": {
       "title": "Jak mamy Cię nazywać?",
       "hint": "Ta nazwa będzie widoczna dla osób, którym udostępnisz swoje listy pomysłów prezentowych.",
       "inputLabel": "Wyświetlana nazwa",
       "inputPlaceholder": "Np. Kasia, Marek",
-      "required": "Podaj nazwę, jaką mają widzieć bliscy.",
+      "required": "Podaj nazwę, jaką mają widzieć Twoi bliscy.",
       "failed": "Nie udało się zapisać nazwy."
     }
   },
@@ -54,8 +54,8 @@
     "language": "Język"
   },
   "home": {
-    "heroTitle": "Podaruj to, co naprawdę cieszy",
-    "heroSubtitle": "Twórz listy prezentów, dziel się nimi z bliskimi i miej pewność, że każdy upominek będzie trafiony. Prosto, elegancko i bez duplikacji.",
+    "heroTitle": "Podarunki tylko takie, które naprawdę cieszą",
+    "heroSubtitle": "Twórz listy pomysłów na prezenty, dziel się nimi z bliskimi i miej pewność, że każdy upominek będzie trafiony. Prosto, elegancko i bez duplikacji.",
     "goToDashboard": "Przejdź do moich list",
     "startForFree": "Zacznij za darmo",
     "login": "Zaloguj się",
@@ -292,6 +292,12 @@
     "unclaim": "Anuluj",
     "selectGift": "Wybierz prezent",
     "fullyClaimed": "W komplecie",
+    "guideTitle": "Jak działa ta lista?",
+    "guideLead": "Ta lista to zestaw podpowiedzi i inspiracji prezentowych. Pamiętaj, że najważniejsza jest Twoja obecność i nie czuj żadnej presji – prezenty nie są wymagane! Jeśli jednak chcesz coś podarować, poniżej znajdziesz rzeczy, które naprawdę się przydadzą i sprawią radość.",
+    "guideHowItWorks": "Możesz zarezerwować dowolny prezent bez rejestracji, klikając przycisk „Wybierz prezent”. Dzięki temu inni goście nie kupią tego samego, a dla organizatora wszystko pozostaje niespodzianką aż do rozpakowania!",
+    "guideStep1": "Przejrzyj pomysły",
+    "guideStep2": "Zarezerwuj bez konta",
+    "guideStep3": "Zachowaj niespodziankę",
     "claimModal": {
       "title": "Rezerwacja: {name}",
       "nameLabel": "Twoje imię (opcjonalnie)",

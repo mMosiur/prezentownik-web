@@ -32,13 +32,13 @@
     }
   },
   "app": {
-    "footerText": "© 2026 Prezentownik. Created for beautiful moments.",
+    "footerText": "2026 Prezentownik.info.pl",
     "displayNameModal": {
       "title": "What should we call you?",
       "hint": "This name will be visible to people you share your gift idea lists with.",
       "inputLabel": "Display name",
       "inputPlaceholder": "e.g. Kate, Mark",
-      "required": "Please enter a name for loved ones to see.",
+      "required": "Please enter a name for your loved ones to see.",
       "failed": "Failed to save display name."
     }
   },
@@ -54,7 +54,7 @@
     "language": "Language"
   },
   "home": {
-    "heroTitle": "Give what truly brings joy",
+    "heroTitle": "Gifting only things that truly bring joy",
     "heroSubtitle": "Create gift lists, share them with loved ones, and make sure every present is spot on. Simple, elegant, and duplicate-free.",
     "goToDashboard": "Go to my lists",
     "startForFree": "Get started for free",
@@ -292,6 +292,12 @@
     "unclaim": "Cancel",
     "selectGift": "Choose gift",
     "fullyClaimed": "Fully claimed",
+    "guideTitle": "How this list works",
+    "guideLead": "This list is a collection of gift ideas and inspiration. Your presence is what matters most and please don't feel pressured — gifts are never expected! However, if you would like to give something, here are ideas for things that are genuinely needed and appreciated.",
+    "guideHowItWorks": "You can reserve any gift without creating an account by clicking \"Choose gift\". This lets other guests know what has already been chosen, while keeping it a complete surprise for the host until unwrapped!",
+    "guideStep1": "Browse ideas",
+    "guideStep2": "Reserve without account",
+    "guideStep3": "Keep the surprise",
     "claimModal": {
       "title": "Reserve: {name}",
       "nameLabel": "Your name (optional)",
