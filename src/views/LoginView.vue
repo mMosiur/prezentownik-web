@@ -116,7 +116,7 @@ async function handleSubmit() {
     <div class="auth-card card">
       <div class="auth-header text-center">
         <h1>Witaj ponownie</h1>
-        <p class="auth-subtitle">Zaloguj się, aby zarządzać swoimi listami prezentów.</p>
+        <p class="auth-subtitle">Zaloguj się, aby zarządzać swoimi listami prezentowymi.</p>
       </div>
 
       <!-- Registration success flash message -->

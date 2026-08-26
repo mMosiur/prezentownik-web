@@ -103,7 +103,7 @@ async function handleSubmit() {
     <div class="auth-card card">
       <div class="auth-header text-center">
         <h1>Dołącz do nas</h1>
-        <p class="auth-subtitle">Stwórz konto, aby zacząć planować swoje listy prezentów.</p>
+        <p class="auth-subtitle">Stwórz konto, aby zacząć tworzyć swoje listy pomysłów prezentowych.</p>
       </div>
 
       <!-- Error alert banner -->

@@ -96,7 +96,7 @@ async function saveDisplayName() {
         </div>
 
         <p class="modal-hint">
-          Ta nazwa będzie widoczna dla osób, którym udostępnisz swoje listy prezentowe.
+          Ta nazwa będzie widoczna dla osób, którym udostępnisz swoje listy pomysłów prezentowych.
         </p>
 
         <div v-if="displayNameError" class="alert alert-error mt-1" role="alert">

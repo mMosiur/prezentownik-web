@@ -253,7 +253,7 @@ async function moveItem(index: number, direction: 'up' | 'down') {
     try {
       await listStore.reorderItems(listId, itemIds)
     } catch (err: unknown) {
-      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności prezentów.')
+      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności pomysłów.')
       reorderError.value = parsed.message
     } finally {
       isReordering.value = false
@@ -364,7 +364,7 @@ function getItemTypeName(type: number) {
         </div>
         <div class="header-actions">
           <button @click="showShareModal = true" class="btn btn-outline">Udostępnij</button>
-          <button @click="openAddItem" class="btn">Dodaj prezent</button>
+          <button @click="openAddItem" class="btn">Dodaj pomysł</button>
           <button @click="openDeleteListModal" class="btn btn-outline btn-danger">Usuń listę</button>
         </div>
       </div>
@@ -372,7 +372,7 @@ function getItemTypeName(type: number) {
       <div v-if="listStore.currentList.items.length === 0" class="empty-state text-center mt-2">
         <div class="empty-icon">🎁</div>
         <h3>Ta lista jest jeszcze pusta</h3>
-        <p>Dodaj pierwszy prezent, aby bliscy wiedzieli, co sprawi Ci radość.</p>
+        <p>Dodaj pierwszy pomysł na prezent, aby bliscy wiedzieli, co sprawi Ci radość.</p>
         <button @click="openAddItem" class="btn btn-outline mt-1">Dodaj prezent</button>
       </div>
 

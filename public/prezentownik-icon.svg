@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title">
-  <title id="title">Prezentownik — lista prezentów</title>
+  <title id="title">Prezentownik</title>
   <rect width="128" height="128" rx="30" fill="#4f6d68"/>
 
   <!-- A simple gift-list card, designed to stay legible at favicon size -->

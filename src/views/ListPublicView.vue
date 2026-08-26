@@ -268,10 +268,10 @@ function getProgress(item: PublicItem) {
       </Teleport>
     </div>
     <div v-else-if="loadError" class="text-center mt-2">
-      <p>Nie udało się znaleźć tej listy prezentów. Sprawdź, czy link jest poprawny.</p>
+      <p>Nie udało się znaleźć tej listy prezentowej. Sprawdź, czy link jest poprawny.</p>
     </div>
     <div v-else class="text-center mt-2">
-      <p>Ładowanie listy prezentów...</p>
+      <p>Ładowanie listy prezentowej...</p>
     </div>
   </div>
 </template>
