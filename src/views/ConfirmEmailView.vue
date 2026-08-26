@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const route = useRoute()
 
@@ -19,7 +21,7 @@ onMounted(async () => {
 
   if (typeof userId !== 'string' || typeof code !== 'string' || !userId || !code) {
     status.value = 'error'
-    errorMessage.value = 'Link potwierdzający jest nieprawidłowy lub niekompletny.'
+    errorMessage.value = t('auth.confirmEmail.invalidLink')
     return
   }
 
@@ -31,9 +33,9 @@ onMounted(async () => {
     )
     status.value = 'success'
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się potwierdzić adresu e-mail. Link mógł wygasnąć lub został już wykorzystany.')
+    const parsed = parseApiError(err, t('auth.confirmEmail.failedDefault'))
     status.value = 'error'
-    errorMessage.value = parsed.message || 'Nie udało się potwierdzić adresu e-mail. Link mógł wygasnąć lub został już wykorzystany.'
+    errorMessage.value = parsed.message || t('auth.confirmEmail.failedDefault')
   }
 })
 </script>
@@ -43,21 +45,21 @@ onMounted(async () => {
     <div class="auth-card card">
       <div v-if="status === 'confirming'" class="auth-header text-center">
         <span class="spinner spinner-lg" aria-hidden="true"></span>
-        <h1>Potwierdzanie adresu e-mail...</h1>
-        <p class="auth-subtitle">Chwileczkę, weryfikujemy Twój link.</p>
+        <h1>{{ t('auth.confirmEmail.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.confirmEmail.loadingSubtitle') }}</p>
       </div>
 
       <div v-else-if="status === 'success'" class="auth-header text-center">
-        <h1>Adres e-mail potwierdzony!</h1>
-        <p class="auth-subtitle">Twoje konto zostało zweryfikowane. Możesz się teraz zalogować.</p>
-        <RouterLink :to="{ name: 'login' }" class="btn btn-block btn-submit mt-2">Przejdź do logowania</RouterLink>
+        <h1>{{ t('auth.confirmEmail.successTitle') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.confirmEmail.successDesc') }}</p>
+        <RouterLink :to="{ name: 'login' }" class="btn btn-block btn-submit mt-2">{{ t('auth.confirmEmail.goToLogin') }}</RouterLink>
       </div>
 
       <div v-else class="auth-header text-center">
-        <h1>Nie udało się potwierdzić e-maila</h1>
+        <h1>{{ t('auth.confirmEmail.failedTitle') }}</h1>
         <p class="auth-subtitle">{{ errorMessage }}</p>
-        <RouterLink :to="{ name: 'resend-confirmation' }" class="btn btn-block btn-submit mt-2">Wyślij link ponownie</RouterLink>
-        <RouterLink :to="{ name: 'login' }" class="auth-link mt-2">Wróć do logowania</RouterLink>
+        <RouterLink :to="{ name: 'resend-confirmation' }" class="btn btn-block btn-submit mt-2">{{ t('auth.confirmEmail.resendLink') }}</RouterLink>
+        <RouterLink :to="{ name: 'login' }" class="auth-link mt-2">{{ t('auth.confirmEmail.backToLogin') }}</RouterLink>
       </div>
     </div>
   </div>

@@ -2,10 +2,12 @@
 import { onMounted, ref } from 'vue'
 import { useListStore, type ListSummary } from '@/stores/list'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import ShareListModal from '@/components/ShareListModal.vue'
 
+const { t } = useI18n()
 const listStore = useListStore()
 const router = useRouter()
 
@@ -61,7 +63,7 @@ async function handleCreateList() {
 
   const trimmedName = newList.value.name.trim()
   if (!trimmedName) {
-    createFieldErrors.value.name = 'Nazwa listy jest wymagana.'
+    createFieldErrors.value.name = t('dashboard.createModal.nameRequired')
     return
   }
 
@@ -75,13 +77,13 @@ async function handleCreateList() {
     newList.value = { name: '', description: '' }
     router.push({ name: 'list-manage', params: { listId: created.id } })
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się utworzyć listy.')
+    const parsed = parseApiError(err, t('dashboard.createModal.failed'))
     createError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       createFieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(createFieldErrors.value.name || createFieldErrors.value.description)
       if (!hasMatchingFieldError && !createError.value) {
-        createError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się utworzyć listy.'
+        createError.value = Object.values(parsed.fieldErrors)[0] || t('dashboard.createModal.failed')
       }
     }
   } finally {
@@ -117,7 +119,7 @@ async function handleUpdateList() {
 
   const trimmedName = editListForm.value.name.trim()
   if (!trimmedName) {
-    editFieldErrors.value.name = 'Nazwa listy jest wymagana.'
+    editFieldErrors.value.name = t('dashboard.editModal.nameRequired')
     return
   }
 
@@ -130,13 +132,13 @@ async function handleUpdateList() {
     showEditModal.value = false
     editingListId.value = null
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zaktualizować listy.')
+    const parsed = parseApiError(err, t('dashboard.editModal.failed'))
     editError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       editFieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(editFieldErrors.value.name || editFieldErrors.value.description)
       if (!hasMatchingFieldError && !editError.value) {
-        editError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się zaktualizować listy.'
+        editError.value = Object.values(parsed.fieldErrors)[0] || t('dashboard.editModal.failed')
       }
     }
   } finally {
@@ -160,7 +162,7 @@ async function handleDeleteList() {
     showDeleteModal.value = false
     listToDelete.value = null
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się usunąć listy.')
+    const parsed = parseApiError(err, t('dashboard.deleteModal.failed'))
     deleteError.value = parsed.message
   } finally {
     isDeleting.value = false
@@ -182,19 +184,19 @@ function openShareModal(list: ListSummary) {
 <template>
   <div class="container">
     <div class="dashboard-header mt-2">
-      <h1>Moje Listy Prezentów</h1>
-      <button @click="openCreateModal" class="btn">Nowa Lista</button>
+      <h1>{{ t('dashboard.title') }}</h1>
+      <button @click="openCreateModal" class="btn">{{ t('dashboard.newList') }}</button>
     </div>
 
     <div v-if="listStore.isLoading && listStore.lists.length === 0" class="text-center mt-2">
-      <p>Ładowanie list...</p>
+      <p>{{ t('dashboard.loading') }}</p>
     </div>
     
     <div v-else-if="listStore.lists.length === 0" class="empty-state card text-center mt-2">
       <div class="empty-icon">📂</div>
-      <h2>Nie masz jeszcze żadnych list</h2>
-      <p class="mt-1">Stwórz swoją pierwszą listę, aby zacząć zbierać pomysły na prezenty.</p>
-      <button @click="openCreateModal" class="btn mt-2">Utwórz pierwszą listę</button>
+      <h2>{{ t('dashboard.emptyTitle') }}</h2>
+      <p class="mt-1">{{ t('dashboard.emptySubtitle') }}</p>
+      <button @click="openCreateModal" class="btn mt-2">{{ t('dashboard.createFirstList') }}</button>
     </div>
 
     <div v-else class="list-grid mt-2">
@@ -204,9 +206,9 @@ function openShareModal(list: ListSummary) {
           <p v-if="list.description" class="description">{{ list.description }}</p>
         </div>
         <div class="card-footer" @click.stop>
-          <button @click="goToList(list.id)" class="btn btn-sm btn-outline">Zarządzaj</button>
-          <button @click="openShareModal(list)" class="btn btn-sm btn-outline">Udostępnij</button>
-          <button @click="openDeleteModal(list)" class="btn btn-sm btn-outline btn-danger">Usuń</button>
+          <button @click="goToList(list.id)" class="btn btn-sm btn-outline">{{ t('common.actions.manage') }}</button>
+          <button @click="openShareModal(list)" class="btn btn-sm btn-outline">{{ t('common.actions.share') }}</button>
+          <button @click="openDeleteModal(list)" class="btn btn-sm btn-outline btn-danger">{{ t('common.actions.delete') }}</button>
         </div>
       </div>
     </div>
@@ -216,8 +218,8 @@ function openShareModal(list: ListSummary) {
       <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
         <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="create-list-title">
           <div class="modal-header">
-            <h2 id="create-list-title">Nowa Lista Prezentów</h2>
-            <button class="close-btn" aria-label="Zamknij" @click="showCreateModal = false">&times;</button>
+            <h2 id="create-list-title">{{ t('dashboard.createModal.title') }}</h2>
+            <button class="close-btn" :aria-label="t('common.actions.close')" @click="showCreateModal = false">&times;</button>
           </div>
 
           <div v-if="createError" class="alert alert-error mt-1" role="alert">
@@ -227,13 +229,13 @@ function openShareModal(list: ListSummary) {
           <form @submit.prevent="handleCreateList" class="mt-1" novalidate>
             <div class="form-group" :class="{ 'has-error': !!createFieldErrors.name }">
               <label for="new-list-name">
-                Nazwa listy <span class="required-mark">*</span>
+                {{ t('dashboard.createModal.nameLabel') }} <span class="required-mark">*</span>
               </label>
               <input
                 id="new-list-name"
                 v-model="newList.name"
                 required
-                placeholder="Np. Urodziny, Wesele, Baby Shower"
+                :placeholder="t('dashboard.createModal.namePlaceholder')"
                 :disabled="isCreating"
                 @input="clearCreateFieldError('name')"
               />
@@ -242,21 +244,21 @@ function openShareModal(list: ListSummary) {
               </p>
             </div>
             <div class="form-group">
-              <label for="new-list-description">Opis (opcjonalnie)</label>
+              <label for="new-list-description">{{ t('dashboard.createModal.descriptionLabel') }}</label>
               <textarea
                 id="new-list-description"
                 v-model="newList.description"
                 rows="3"
-                placeholder="Dodaj krótki opis lub okazję..."
+                :placeholder="t('dashboard.createModal.descriptionPlaceholder')"
                 :disabled="isCreating"
               ></textarea>
             </div>
             <div class="modal-actions">
               <button type="button" @click="showCreateModal = false" class="btn btn-outline" :disabled="isCreating">
-                Anuluj
+                {{ t('common.actions.cancel') }}
               </button>
               <button type="submit" class="btn" :disabled="isCreating">
-                {{ isCreating ? 'Tworzenie...' : 'Utwórz listę' }}
+                {{ isCreating ? t('dashboard.createModal.submitting') : t('dashboard.createModal.submit') }}
               </button>
             </div>
           </form>
@@ -269,8 +271,8 @@ function openShareModal(list: ListSummary) {
       <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
         <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-dashboard-list-title">
           <div class="modal-header">
-            <h2 id="edit-dashboard-list-title">Edytuj Listę Prezentów</h2>
-            <button class="close-btn" aria-label="Zamknij" @click="showEditModal = false">&times;</button>
+            <h2 id="edit-dashboard-list-title">{{ t('dashboard.editModal.title') }}</h2>
+            <button class="close-btn" :aria-label="t('common.actions.close')" @click="showEditModal = false">&times;</button>
           </div>
 
           <div v-if="editError" class="alert alert-error mt-1" role="alert">
@@ -280,13 +282,13 @@ function openShareModal(list: ListSummary) {
           <form @submit.prevent="handleUpdateList" class="mt-1" novalidate>
             <div class="form-group" :class="{ 'has-error': !!editFieldErrors.name }">
               <label for="edit-dashboard-list-name">
-                Nazwa listy <span class="required-mark">*</span>
+                {{ t('dashboard.editModal.nameLabel') }} <span class="required-mark">*</span>
               </label>
               <input
                 id="edit-dashboard-list-name"
                 v-model="editListForm.name"
                 required
-                placeholder="Np. Urodziny, Wesele, Baby Shower"
+                :placeholder="t('dashboard.editModal.namePlaceholder')"
                 :disabled="isEditing"
                 @input="clearEditFieldError('name')"
               />
@@ -295,21 +297,21 @@ function openShareModal(list: ListSummary) {
               </p>
             </div>
             <div class="form-group">
-              <label for="edit-dashboard-list-description">Opis (opcjonalnie)</label>
+              <label for="edit-dashboard-list-description">{{ t('dashboard.editModal.descriptionLabel') }}</label>
               <textarea
                 id="edit-dashboard-list-description"
                 v-model="editListForm.description"
                 rows="3"
-                placeholder="Dodaj krótki opis lub okazję..."
+                :placeholder="t('dashboard.editModal.descriptionPlaceholder')"
                 :disabled="isEditing"
               ></textarea>
             </div>
             <div class="modal-actions">
               <button type="button" @click="showEditModal = false" class="btn btn-outline" :disabled="isEditing">
-                Anuluj
+                {{ t('common.actions.cancel') }}
               </button>
               <button type="submit" class="btn" :disabled="isEditing">
-                {{ isEditing ? 'Zapisywanie...' : 'Zapisz zmiany' }}
+                {{ isEditing ? t('dashboard.editModal.submitting') : t('dashboard.editModal.submit') }}
               </button>
             </div>
           </form>
@@ -322,8 +324,8 @@ function openShareModal(list: ListSummary) {
       <div v-if="showDeleteModal" class="modal-overlay" @click="!isDeleting && (showDeleteModal = false)">
         <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="delete-dashboard-list-title">
           <div class="modal-header">
-            <h2 id="delete-dashboard-list-title">Usuń listę prezentów</h2>
-            <button class="close-btn" aria-label="Zamknij" :disabled="isDeleting" @click="showDeleteModal = false">&times;</button>
+            <h2 id="delete-dashboard-list-title">{{ t('dashboard.deleteModal.title') }}</h2>
+            <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeleting" @click="showDeleteModal = false">&times;</button>
           </div>
 
           <div v-if="deleteError" class="alert alert-error mt-1" role="alert">
@@ -332,10 +334,14 @@ function openShareModal(list: ListSummary) {
 
           <div class="confirm-content mt-1">
             <p>
-              Czy na pewno chcesz usunąć listę <strong>«{{ listToDelete?.name }}»</strong>?
+              <i18n-t keypath="dashboard.deleteModal.confirmMessage" tag="span">
+                <template #name>
+                  <strong>«{{ listToDelete?.name }}»</strong>
+                </template>
+              </i18n-t>
             </p>
             <p class="confirm-warning">
-              Ta operacja jest nieodwracalna. Wszystkie prezenty przypisane do tej listy zostaną trwale usunięte.
+              {{ t('dashboard.deleteModal.warning') }}
             </p>
           </div>
 
@@ -346,7 +352,7 @@ function openShareModal(list: ListSummary) {
               class="btn btn-outline"
               :disabled="isDeleting"
             >
-              Anuluj
+              {{ t('common.actions.cancel') }}
             </button>
             <button
               type="button"
@@ -354,7 +360,7 @@ function openShareModal(list: ListSummary) {
               class="btn btn-danger-solid"
               :disabled="isDeleting"
             >
-              {{ isDeleting ? 'Usuwanie...' : 'Usuń listę' }}
+              {{ isDeleting ? t('dashboard.deleteModal.submitting') : t('dashboard.deleteModal.submit') }}
             </button>
           </div>
         </div>

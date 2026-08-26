@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import axios from 'axios'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
 import { useAuthStore } from '@/stores/auth'
@@ -8,6 +9,7 @@ import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import ShareListModal from '@/components/ShareListModal.vue'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const listStore = useListStore()
@@ -115,7 +117,7 @@ async function saveListDetails() {
 
   const trimmedName = listForm.value.name.trim()
   if (!trimmedName) {
-    listEditFieldErrors.value.name = 'Nazwa listy jest wymagana.'
+    listEditFieldErrors.value.name = t('listManage.editListModal.nameRequired')
     return
   }
 
@@ -128,13 +130,13 @@ async function saveListDetails() {
     await listStore.updateList(listId, payload)
     showEditListModal.value = false
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zaktualizować danych listy.')
+    const parsed = parseApiError(err, t('listManage.editListModal.failed'))
     listEditError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       listEditFieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(listEditFieldErrors.value.name || listEditFieldErrors.value.description)
       if (!hasMatchingFieldError && !listEditError.value) {
-        listEditError.value = Object.values(parsed.fieldErrors)[0] || 'Nie udało się zaktualizować danych listy.'
+        listEditError.value = Object.values(parsed.fieldErrors)[0] || t('listManage.editListModal.failed')
       }
     }
   } finally {
@@ -157,7 +159,7 @@ async function confirmDeleteList() {
     showDeleteListModal.value = false
     router.push({ name: 'dashboard' })
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się usunąć listy.')
+    const parsed = parseApiError(err, t('listManage.deleteListModal.failed'))
     deleteListError.value = parsed.message
   } finally {
     isDeletingList.value = false
@@ -207,8 +209,8 @@ async function saveItem() {
     }
     showItemModal.value = false
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zapisać prezentu.')
-    itemFormError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zapisać prezentu.'
+    const parsed = parseApiError(err, t('listManage.itemModal.failed'))
+    itemFormError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listManage.itemModal.failed')
   } finally {
     isSavingItem.value = false
   }
@@ -230,7 +232,7 @@ async function confirmDeleteItem() {
     showDeleteItemModal.value = false
     itemToDelete.value = null
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się usunąć prezentu.')
+    const parsed = parseApiError(err, t('listManage.deleteItemModal.failed'))
     deleteItemError.value = parsed.message
   } finally {
     isDeletingItem.value = false
@@ -253,7 +255,7 @@ async function moveItem(index: number, direction: 'up' | 'down') {
     try {
       await listStore.reorderItems(listId, itemIds)
     } catch (err: unknown) {
-      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności pomysłów.')
+      const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message
     } finally {
       isReordering.value = false
@@ -309,7 +311,7 @@ async function onDrop(event: DragEvent, targetIndex: number) {
     try {
       await listStore.reorderItems(listId, itemIds)
     } catch (err: unknown) {
-      const parsed = parseApiError(err, 'Nie udało się zmienić kolejności prezentów.')
+      const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message
     } finally {
       isReordering.value = false
@@ -324,10 +326,10 @@ function onDragEnd() {
 
 function getItemTypeName(type: number) {
   switch (type) {
-    case 0: return 'Pojedynczy'
-    case 1: return 'Ilościowy'
-    case 2: return 'Bez limitu'
-    default: return 'Nieznany'
+    case 0: return t('listManage.itemTypes.single')
+    case 1: return t('listManage.itemTypes.quantity')
+    case 2: return t('listManage.itemTypes.unlimited')
+    default: return t('listManage.itemTypes.unknown')
   }
 }
 </script>
@@ -336,12 +338,12 @@ function getItemTypeName(type: number) {
   <div class="container mt-2">
     <div v-if="listStore.currentList">
       <div class="navigation-header">
-        <RouterLink :to="{ name: 'dashboard' }" class="back-link">&larr; Powrót do moich list</RouterLink>
+        <RouterLink :to="{ name: 'dashboard' }" class="back-link">&larr; {{ t('listManage.backToDashboard') }}</RouterLink>
       </div>
 
       <div v-if="redirectedFromPublic" class="alert alert-info mt-1" role="status">
-        <span class="alert-desc">To Twoja lista, więc przenieliśmy Cię tutaj — na tej stronie nie zobaczysz, co zostało zarezerwowane, aby prezenty pozostały niespodzianką. Użyj przycisku „Udostępnij”, aby wysłać listę innym.</span>
-        <button class="close-btn" aria-label="Zamknij" @click="dismissRedirectNotice">&times;</button>
+        <span class="alert-desc">{{ t('listManage.redirectNotice') }}</span>
+        <button class="close-btn" :aria-label="t('common.actions.close')" @click="dismissRedirectNotice">&times;</button>
       </div>
 
       <div class="list-details-header card mt-1">
@@ -351,8 +353,8 @@ function getItemTypeName(type: number) {
             <button
               @click="openEditList"
               class="btn-icon-edit"
-              title="Edytuj dane listy"
-              aria-label="Edytuj dane listy"
+              :title="t('listManage.editListTooltip')"
+              :aria-label="t('listManage.editListTooltip')"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -363,23 +365,23 @@ function getItemTypeName(type: number) {
           <p v-if="listStore.currentList.description" class="list-description-text">{{ listStore.currentList.description }}</p>
         </div>
         <div class="header-actions">
-          <button @click="showShareModal = true" class="btn btn-outline">Udostępnij</button>
-          <button @click="openAddItem" class="btn">Dodaj pomysł</button>
-          <button @click="openDeleteListModal" class="btn btn-outline btn-danger">Usuń listę</button>
+          <button @click="showShareModal = true" class="btn btn-outline">{{ t('common.actions.share') }}</button>
+          <button @click="openAddItem" class="btn">{{ t('listManage.addItem') }}</button>
+          <button @click="openDeleteListModal" class="btn btn-outline btn-danger">{{ t('listManage.deleteList') }}</button>
         </div>
       </div>
 
       <div v-if="listStore.currentList.items.length === 0" class="empty-state text-center mt-2">
         <div class="empty-icon">🎁</div>
-        <h3>Ta lista jest jeszcze pusta</h3>
-        <p>Dodaj pierwszy pomysł na prezent, aby bliscy wiedzieli, co sprawi Ci radość.</p>
-        <button @click="openAddItem" class="btn btn-outline mt-1">Dodaj prezent</button>
+        <h3>{{ t('listManage.emptyTitle') }}</h3>
+        <p>{{ t('listManage.emptySubtitle') }}</p>
+        <button @click="openAddItem" class="btn btn-outline mt-1">{{ t('listManage.addGift') }}</button>
       </div>
 
       <template v-else>
         <div v-if="reorderError" class="alert alert-error mt-2" role="alert">
           <span class="alert-desc">{{ reorderError }}</span>
-          <button class="close-btn" aria-label="Zamknij" @click="reorderError = ''">&times;</button>
+          <button class="close-btn" :aria-label="t('common.actions.close')" @click="reorderError = ''">&times;</button>
         </div>
 
         <div class="items-list mt-2">
@@ -399,13 +401,13 @@ function getItemTypeName(type: number) {
           @drop="onDrop($event, index)"
           @dragend="onDragEnd"
         >
-          <div class="item-order" title="Przeciągnij, aby zmienić kolejność">
+          <div class="item-order" :title="t('listManage.dragTooltip')">
             <button
               @click.stop="moveItem(index, 'up')"
               :disabled="index === 0 || isReordering"
               class="order-btn"
-              title="Przesuń w górę"
-              aria-label="Przesuń w górę"
+              :title="t('listManage.moveUp')"
+              :aria-label="t('listManage.moveUp')"
             >
               &utrif;
             </button>
@@ -414,8 +416,8 @@ function getItemTypeName(type: number) {
               @click.stop="moveItem(index, 'down')"
               :disabled="index === listStore.currentList.items.length - 1 || isReordering"
               class="order-btn"
-              title="Przesuń w dół"
-              aria-label="Przesuń w dół"
+              :title="t('listManage.moveDown')"
+              :aria-label="t('listManage.moveDown')"
             >
               &dtrif;
             </button>
@@ -424,13 +426,13 @@ function getItemTypeName(type: number) {
           <div class="item-content">
             <div class="item-main">
               <h3>{{ item.name }}</h3>
-              <p class="item-type">{{ getItemTypeName(item.type) }} <span v-if="item.type === 1">(Ilość: {{ item.targetQuantity }})</span></p>
+              <p class="item-type">{{ getItemTypeName(item.type) }} <span v-if="item.type === 1">({{ t('listManage.quantitySuffix', { qty: item.targetQuantity }) }})</span></p>
               <p v-if="item.description" class="item-description">{{ item.description }}</p>
             </div>
             
             <div class="item-actions">
-              <button @click.stop="openEditItem(item)" class="btn btn-sm btn-outline">Edytuj</button>
-              <button @click.stop="openDeleteItemModal(item)" class="btn btn-sm btn-outline btn-danger">Usuń</button>
+              <button @click.stop="openEditItem(item)" class="btn btn-sm btn-outline">{{ t('common.actions.edit') }}</button>
+              <button @click.stop="openDeleteItemModal(item)" class="btn btn-sm btn-outline btn-danger">{{ t('common.actions.delete') }}</button>
             </div>
           </div>
         </div>
@@ -442,8 +444,8 @@ function getItemTypeName(type: number) {
         <div v-if="showEditListModal" class="modal-overlay" @click="showEditListModal = false">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-list-title">
             <div class="modal-header">
-              <h2 id="edit-list-title">Edytuj listę prezentów</h2>
-              <button class="close-btn" aria-label="Zamknij" @click="showEditListModal = false">&times;</button>
+              <h2 id="edit-list-title">{{ t('listManage.editListModal.title') }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" @click="showEditListModal = false">&times;</button>
             </div>
 
             <div v-if="listEditError" class="alert alert-error mt-1" role="alert">
@@ -453,13 +455,13 @@ function getItemTypeName(type: number) {
             <form @submit.prevent="saveListDetails" class="mt-1" novalidate>
               <div class="form-group" :class="{ 'has-error': !!listEditFieldErrors.name }">
                 <label for="edit-list-name">
-                  Nazwa listy <span class="required-mark">*</span>
+                  {{ t('listManage.editListModal.nameLabel') }} <span class="required-mark">*</span>
                 </label>
                 <input
                   id="edit-list-name"
                   v-model="listForm.name"
                   required
-                  placeholder="Np. Urodziny, Wesele, Baby Shower"
+                  :placeholder="t('listManage.editListModal.namePlaceholder')"
                   :disabled="isSavingList"
                   @input="clearListFieldError('name')"
                 />
@@ -469,12 +471,12 @@ function getItemTypeName(type: number) {
               </div>
 
               <div class="form-group">
-                <label for="edit-list-description">Opis (opcjonalnie)</label>
+                <label for="edit-list-description">{{ t('listManage.editListModal.descriptionLabel') }}</label>
                 <textarea
                   id="edit-list-description"
                   v-model="listForm.description"
                   rows="3"
-                  placeholder="Dodaj krótki opis lub okazję..."
+                  :placeholder="t('listManage.editListModal.descriptionPlaceholder')"
                   :disabled="isSavingList"
                 ></textarea>
               </div>
@@ -486,14 +488,14 @@ function getItemTypeName(type: number) {
                   class="btn btn-outline"
                   :disabled="isSavingList"
                 >
-                  Anuluj
+                  {{ t('common.actions.cancel') }}
                 </button>
                 <button
                   type="submit"
                   class="btn"
                   :disabled="isSavingList"
                 >
-                  {{ isSavingList ? 'Zapisywanie...' : 'Zapisz zmiany' }}
+                  {{ isSavingList ? t('common.actions.saving') : t('common.actions.saveChanges') }}
                 </button>
               </div>
             </form>
@@ -506,8 +508,8 @@ function getItemTypeName(type: number) {
         <div v-if="showItemModal" class="modal-overlay" @click="!isSavingItem && (showItemModal = false)">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="item-modal-title">
             <div class="modal-header">
-              <h2 id="item-modal-title">{{ editingItem ? 'Edytuj prezent' : 'Dodaj nowy prezent' }}</h2>
-              <button class="close-btn" aria-label="Zamknij" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
+              <h2 id="item-modal-title">{{ editingItem ? t('listManage.itemModal.titleEdit') : t('listManage.itemModal.titleAdd') }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
             </div>
 
             <div v-if="itemFormError" class="alert alert-error mt-1" role="alert">
@@ -516,28 +518,28 @@ function getItemTypeName(type: number) {
 
             <form @submit.prevent="saveItem" class="mt-1">
               <div class="form-group">
-                <label>Nazwa prezentu</label>
-                <input v-model="itemForm.name" required placeholder="Np. Ekspres do kawy" />
+                <label>{{ t('listManage.itemModal.nameLabel') }}</label>
+                <input v-model="itemForm.name" required :placeholder="t('listManage.itemModal.namePlaceholder')" />
               </div>
               <div class="form-group">
-                <label>Opis / Link do sklepu</label>
-                <textarea v-model="itemForm.description" rows="3" placeholder="Dodaj szczegóły, kolor lub link..."></textarea>
+                <label>{{ t('listManage.itemModal.descriptionLabel') }}</label>
+                <textarea v-model="itemForm.description" rows="3" :placeholder="t('listManage.itemModal.descriptionPlaceholder')"></textarea>
               </div>
               <div class="form-group">
-                <label>Typ prezentu</label>
+                <label>{{ t('listManage.itemModal.typeLabel') }}</label>
                 <select v-model="itemForm.type">
-                  <option :value="0">Pojedynczy (1 sztuka)</option>
-                  <option :value="1">Określona ilość</option>
-                  <option :value="2">Bez limitu (Np. pieluchy, skarpetki)</option>
+                  <option :value="0">{{ t('listManage.itemModal.typeOptionSingle') }}</option>
+                  <option :value="1">{{ t('listManage.itemModal.typeOptionQuantity') }}</option>
+                  <option :value="2">{{ t('listManage.itemModal.typeOptionUnlimited') }}</option>
                 </select>
               </div>
               <div v-if="itemForm.type === 1" class="form-group">
-                <label>Docelowa ilość</label>
+                <label>{{ t('listManage.itemModal.targetQuantityLabel') }}</label>
                 <input v-model="itemForm.targetQuantity" type="number" min="1" required />
               </div>
               <div class="modal-actions">
-                <button type="button" @click="showItemModal = false" class="btn btn-outline">Anuluj</button>
-                <button type="submit" class="btn">Zapisz</button>
+                <button type="button" @click="showItemModal = false" class="btn btn-outline">{{ t('common.actions.cancel') }}</button>
+                <button type="submit" class="btn">{{ t('common.actions.save') }}</button>
               </div>
             </form>
           </div>
@@ -549,8 +551,8 @@ function getItemTypeName(type: number) {
         <div v-if="showDeleteListModal" class="modal-overlay" @click="!isDeletingList && (showDeleteListModal = false)">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="delete-manage-list-title">
             <div class="modal-header">
-              <h2 id="delete-manage-list-title">Usuń listę prezentów</h2>
-              <button class="close-btn" aria-label="Zamknij" :disabled="isDeletingList" @click="showDeleteListModal = false">&times;</button>
+              <h2 id="delete-manage-list-title">{{ t('listManage.deleteListModal.title') }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingList" @click="showDeleteListModal = false">&times;</button>
             </div>
 
             <div v-if="deleteListError" class="alert alert-error mt-1" role="alert">
@@ -559,10 +561,14 @@ function getItemTypeName(type: number) {
 
             <div class="confirm-content mt-1">
               <p>
-                Czy na pewno chcesz usunąć listę <strong>«{{ listStore.currentList.name }}»</strong>?
+                <i18n-t keypath="listManage.deleteListModal.confirmMessage" tag="span">
+                  <template #name>
+                    <strong>«{{ listStore.currentList.name }}»</strong>
+                  </template>
+                </i18n-t>
               </p>
               <p class="confirm-warning">
-                Ta operacja jest nieodwracalna. Wszystkie prezenty przypisane do tej listy zostaną trwale usunięte.
+                {{ t('listManage.deleteListModal.warning') }}
               </p>
             </div>
 
@@ -573,7 +579,7 @@ function getItemTypeName(type: number) {
                 class="btn btn-outline"
                 :disabled="isDeletingList"
               >
-                Anuluj
+                {{ t('common.actions.cancel') }}
               </button>
               <button
                 type="button"
@@ -581,7 +587,7 @@ function getItemTypeName(type: number) {
                 class="btn btn-danger-solid"
                 :disabled="isDeletingList"
               >
-                {{ isDeletingList ? 'Usuwanie...' : 'Usuń listę' }}
+                {{ isDeletingList ? t('listManage.deleteListModal.submitting') : t('listManage.deleteListModal.submit') }}
               </button>
             </div>
           </div>
@@ -593,8 +599,8 @@ function getItemTypeName(type: number) {
         <div v-if="showDeleteItemModal" class="modal-overlay" @click="!isDeletingItem && (showDeleteItemModal = false)">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="delete-item-title">
             <div class="modal-header">
-              <h2 id="delete-item-title">Usuń prezent</h2>
-              <button class="close-btn" aria-label="Zamknij" :disabled="isDeletingItem" @click="showDeleteItemModal = false">&times;</button>
+              <h2 id="delete-item-title">{{ t('listManage.deleteItemModal.title') }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingItem" @click="showDeleteItemModal = false">&times;</button>
             </div>
 
             <div v-if="deleteItemError" class="alert alert-error mt-1" role="alert">
@@ -603,10 +609,14 @@ function getItemTypeName(type: number) {
 
             <div class="confirm-content mt-1">
               <p>
-                Czy na pewno chcesz usunąć prezent <strong>«{{ itemToDelete?.name }}»</strong>?
+                <i18n-t keypath="listManage.deleteItemModal.confirmMessage" tag="span">
+                  <template #name>
+                    <strong>«{{ itemToDelete?.name }}»</strong>
+                  </template>
+                </i18n-t>
               </p>
               <p class="confirm-warning">
-                Tej operacji nie można cofnąć.
+                {{ t('listManage.deleteItemModal.warning') }}
               </p>
             </div>
 
@@ -617,7 +627,7 @@ function getItemTypeName(type: number) {
                 class="btn btn-outline"
                 :disabled="isDeletingItem"
               >
-                Anuluj
+                {{ t('common.actions.cancel') }}
               </button>
               <button
                 type="button"
@@ -625,7 +635,7 @@ function getItemTypeName(type: number) {
                 class="btn btn-danger-solid"
                 :disabled="isDeletingItem"
               >
-                {{ isDeletingItem ? 'Usuwanie...' : 'Usuń prezent' }}
+                {{ isDeletingItem ? t('listManage.deleteItemModal.submitting') : t('listManage.deleteItemModal.submit') }}
               </button>
             </div>
           </div>
@@ -641,20 +651,20 @@ function getItemTypeName(type: number) {
     </div>
     <div v-else-if="isNotOwner" class="not-owner-card card mt-2">
       <div class="not-owner-icon">🔒</div>
-      <h2>To nie Twoja lista prezentów</h2>
+      <h2>{{ t('listManage.notOwner.title') }}</h2>
       <p class="not-owner-desc">
-        Ten adres służy do zarządzania listą i jest przeznaczony wyłącznie dla jej właściciela.
+        {{ t('listManage.notOwner.desc') }}
       </p>
 
       <div class="not-owner-actions">
-        <p>Otrzymałeś ten link od kogoś?</p>
+        <p>{{ t('listManage.notOwner.prompt') }}</p>
         <RouterLink :to="{ name: 'list-public', params: { listId } }" class="btn btn-outline">
-          Zobacz listę jako gość
+          {{ t('listManage.notOwner.viewAsGuest') }}
         </RouterLink>
       </div>
     </div>
     <div v-else class="text-center mt-2">
-      <p>Ładowanie szczegółów listy...</p>
+      <p>{{ t('listManage.loading') }}</p>
     </div>
   </div>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 </script>
 
@@ -9,18 +11,17 @@ const authStore = useAuthStore()
   <div class="landing-page">
     <section class="hero-section container text-center">
       <div class="card hero-card">
-        <h1>Podaruj to, co naprawdę cieszy</h1>
+        <h1>{{ t('home.heroTitle') }}</h1>
         <p class="hero-subtitle">
-          Twórz listy prezentów, dziel się nimi z bliskimi i miej pewność, 
-          że każdy upominek będzie trafiony. Prosto, elegancko i bez duplikacji.
+          {{ t('home.heroSubtitle') }}
         </p>
         <div class="hero-actions mt-2">
           <template v-if="authStore.isAuthenticated">
-            <RouterLink :to="{ name: 'dashboard' }" class="btn btn-lg">Przejdź do moich list</RouterLink>
+            <RouterLink :to="{ name: 'dashboard' }" class="btn btn-lg">{{ t('home.goToDashboard') }}</RouterLink>
           </template>
           <template v-else>
-            <RouterLink :to="{ name: 'register' }" class="btn btn-lg">Zacznij za darmo</RouterLink>
-            <RouterLink :to="{ name: 'login' }" class="btn btn-lg btn-outline ml-1">Zaloguj się</RouterLink>
+            <RouterLink :to="{ name: 'register' }" class="btn btn-lg">{{ t('home.startForFree') }}</RouterLink>
+            <RouterLink :to="{ name: 'login' }" class="btn btn-lg btn-outline ml-1">{{ t('home.login') }}</RouterLink>
           </template>
         </div>
       </div>
@@ -30,18 +31,18 @@ const authStore = useAuthStore()
       <div class="features-grid">
         <div class="feature-card card">
           <div class="feature-icon">🎁</div>
-          <h3>Twórz bez ograniczeń</h3>
-          <p>Dodawaj pomysły na prezenty do listy. Ty decydujesz, czego potrzebujesz.</p>
+          <h3>{{ t('home.feature1Title') }}</h3>
+          <p>{{ t('home.feature1Desc') }}</p>
         </div>
         <div class="feature-card card">
           <div class="feature-icon">🔗</div>
-          <h3>Dziel się łatwo</h3>
-          <p>Wyślij jeden link bliskim. Nie muszą mieć konta, aby zarezerwować prezent i nie zdublować się z innymi.</p>
+          <h3>{{ t('home.feature2Title') }}</h3>
+          <p>{{ t('home.feature2Desc') }}</p>
         </div>
         <div class="feature-card card">
           <div class="feature-icon">🤫</div>
-          <h3>Zachowaj niespodziankę</h3>
-          <p>Jako właściciel listy nie widzisz, kto i co zarezerwował. Dowiesz się dopiero przy rozpakowywaniu!</p>
+          <h3>{{ t('home.feature3Title') }}</h3>
+          <p>{{ t('home.feature3Desc') }}</p>
         </div>
       </div>
     </section>

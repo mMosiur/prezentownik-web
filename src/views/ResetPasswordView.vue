@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
@@ -50,18 +52,18 @@ function validateForm(): boolean {
   let isValid = true
 
   if (!newPassword.value) {
-    fieldErrors.value.password = 'Wprowadź nowe hasło.'
+    fieldErrors.value.password = t('auth.resetPassword.passwordRequired')
     isValid = false
   } else if (newPassword.value.length < 8) {
-    fieldErrors.value.password = 'Hasło musi mieć co najmniej 8 znaków.'
+    fieldErrors.value.password = t('auth.resetPassword.passwordMinLength')
     isValid = false
   }
 
   if (!confirmPassword.value) {
-    fieldErrors.value.confirmPassword = 'Potwierdź hasło.'
+    fieldErrors.value.confirmPassword = t('auth.resetPassword.confirmPasswordRequired')
     isValid = false
   } else if (newPassword.value !== confirmPassword.value) {
-    fieldErrors.value.confirmPassword = 'Hasła nie są identyczne.'
+    fieldErrors.value.confirmPassword = t('auth.resetPassword.passwordsMismatch')
     isValid = false
   }
 
@@ -87,8 +89,8 @@ async function handleSubmit() {
     })
     isSubmitted.value = true
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zresetować hasła. Link mógł wygasnąć lub został już wykorzystany.')
-    generalError.value = parsed.message || 'Nie udało się zresetować hasła. Link mógł wygasnąć lub został już wykorzystany.'
+    const parsed = parseApiError(err, t('auth.resetPassword.failedDefault'))
+    generalError.value = parsed.message || t('auth.resetPassword.failedDefault')
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
     }
@@ -106,13 +108,13 @@ function goToLogin() {
   <div class="container">
     <div class="auth-card card">
       <div class="auth-header text-center">
-        <h1>Ustaw nowe hasło</h1>
-        <p class="auth-subtitle">Wprowadź nowe hasło do swojego konta.</p>
+        <h1>{{ t('auth.resetPassword.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.resetPassword.subtitle') }}</p>
       </div>
 
       <div v-if="linkInvalid" class="alert alert-error mt-2" role="alert">
         <div class="alert-body">
-          <span class="alert-desc">Link do resetowania hasła jest nieprawidłowy lub niekompletny.</span>
+          <span class="alert-desc">{{ t('auth.resetPassword.invalidLink') }}</span>
         </div>
       </div>
 
@@ -123,8 +125,8 @@ function goToLogin() {
         aria-live="polite"
       >
         <div class="alert-body">
-          <span class="alert-title">Hasło zostało zmienione!</span>
-          <span class="alert-desc">Możesz się teraz zalogować, używając nowego hasła.</span>
+          <span class="alert-title">{{ t('auth.resetPassword.successTitle') }}</span>
+          <span class="alert-desc">{{ t('auth.resetPassword.successDesc') }}</span>
         </div>
       </div>
 
@@ -143,7 +145,7 @@ function goToLogin() {
         <form @submit.prevent="handleSubmit" class="auth-form mt-2" novalidate>
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.password }">
             <label for="reset-password-new">
-              Nowe hasło <span class="required-mark" aria-hidden="true">*</span>
+              {{ t('auth.resetPassword.newPassword') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
             <div class="input-wrapper password-wrapper">
               <input
@@ -152,7 +154,7 @@ function goToLogin() {
                 :type="showPassword ? 'text' : 'password'"
                 name="newPassword"
                 autocomplete="new-password"
-                placeholder="Min. 8 znaków"
+                :placeholder="t('auth.resetPassword.passwordPlaceholder')"
                 required
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.password"
@@ -163,7 +165,7 @@ function goToLogin() {
                 type="button"
                 class="password-toggle-btn"
                 tabindex="-1"
-                :aria-label="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
+                :aria-label="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :disabled="isSubmitting"
                 @click="showPassword = !showPassword"
               >
@@ -182,7 +184,7 @@ function goToLogin() {
 
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.confirmPassword }">
             <label for="reset-password-confirm">
-              Potwierdź hasło <span class="required-mark" aria-hidden="true">*</span>
+              {{ t('common.labels.confirmPassword') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
             <div class="input-wrapper password-wrapper">
               <input
@@ -191,7 +193,7 @@ function goToLogin() {
                 :type="showConfirmPassword ? 'text' : 'password'"
                 name="confirmPassword"
                 autocomplete="new-password"
-                placeholder="Powtórz hasło"
+                :placeholder="t('auth.resetPassword.confirmPasswordPlaceholder')"
                 required
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.confirmPassword"
@@ -202,7 +204,7 @@ function goToLogin() {
                 type="button"
                 class="password-toggle-btn"
                 tabindex="-1"
-                :aria-label="showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
+                :aria-label="showConfirmPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :disabled="isSubmitting"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
@@ -226,17 +228,17 @@ function goToLogin() {
             :aria-busy="isSubmitting"
           >
             <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
-            <span>{{ isSubmitting ? 'Zapisywanie...' : 'Zmień hasło' }}</span>
+            <span>{{ isSubmitting ? t('auth.resetPassword.submitting') : t('auth.resetPassword.submit') }}</span>
           </button>
         </form>
       </template>
 
       <div class="auth-footer text-center mt-2">
         <p v-if="!isSubmitted">
-          <RouterLink :to="{ name: 'login' }" class="auth-link">Wróć do logowania</RouterLink>
+          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resetPassword.backToLogin') }}</RouterLink>
         </p>
         <p v-else>
-          <button type="button" class="auth-link auth-link-btn" @click="goToLogin">Przejdź do logowania</button>
+          <button type="button" class="auth-link auth-link-btn" @click="goToLogin">{{ t('auth.resetPassword.goToLogin') }}</button>
         </p>
       </div>
     </div>

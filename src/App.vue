@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useLanguage } from '@/composables/useLanguage'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
+const { currentLang, changeLanguage } = useLanguage()
 
 const showDisplayNameModal = ref(false)
 const displayNameInput = ref('')
@@ -37,7 +41,7 @@ async function saveDisplayName() {
 
   const trimmed = displayNameInput.value.trim()
   if (!trimmed) {
-    displayNameError.value = 'Podaj nazwę, jaką mają widzieć bliscy.'
+    displayNameError.value = t('app.displayNameModal.required')
     return
   }
 
@@ -47,8 +51,8 @@ async function saveDisplayName() {
     await authStore.updateUser({ displayName: trimmed })
     showDisplayNameModal.value = false
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zapisać nazwy.')
-    displayNameError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zapisać nazwy.'
+    const parsed = parseApiError(err, t('app.displayNameModal.failed'))
+    displayNameError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('app.displayNameModal.failed')
   } finally {
     isSavingDisplayName.value = false
   }
@@ -60,29 +64,51 @@ async function saveDisplayName() {
     <div class="container nav-wrapper">
       <RouterLink to="/" class="brand">
         <img :src="iconUrl" alt="" class="brand-icon">
-        <span>Prezentownik</span>
+        <span>{{ t('nav.title') }}</span>
       </RouterLink>
       
       <nav class="main-nav">
         <template v-if="authStore.isAuthenticated">
           <span class="welcome-text">
-            Witaj{{ authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }}!
+            {{ t('nav.welcome', { name: authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }) }}
           </span>
           <button
             v-if="!authStore.user?.displayName"
             @click="openDisplayNameModal"
             class="btn btn-sm btn-outline set-name-btn"
-            title="Ustaw nazwę, którą zobaczą bliscy"
+            :title="t('nav.setNameTooltip')"
           >
-            Ustaw nazwę
+            {{ t('nav.setName') }}
           </button>
-          <RouterLink :to="{ name: 'dashboard' }" class="nav-link">Moje Listy</RouterLink>
-          <button @click="handleLogout" class="btn btn-outline btn-sm">Wyloguj</button>
+          <RouterLink :to="{ name: 'dashboard' }" class="nav-link">{{ t('nav.dashboard') }}</RouterLink>
+          <button @click="handleLogout" class="btn btn-outline btn-sm">{{ t('nav.logout') }}</button>
         </template>
         <template v-else>
-          <RouterLink :to="{ name: 'login' }" class="nav-link">Logowanie</RouterLink>
-          <RouterLink :to="{ name: 'register' }" class="btn btn-sm">Rejestracja</RouterLink>
+          <RouterLink :to="{ name: 'login' }" class="nav-link">{{ t('nav.login') }}</RouterLink>
+          <RouterLink :to="{ name: 'register' }" class="btn btn-sm">{{ t('nav.register') }}</RouterLink>
         </template>
+
+        <div class="lang-switcher">
+          <button
+            type="button"
+            class="lang-btn"
+            :class="{ active: currentLang === 'pl' }"
+            @click="changeLanguage('pl')"
+            title="Polski"
+          >
+            PL
+          </button>
+          <span class="lang-divider">/</span>
+          <button
+            type="button"
+            class="lang-btn"
+            :class="{ active: currentLang === 'en' }"
+            @click="changeLanguage('en')"
+            title="English"
+          >
+            EN
+          </button>
+        </div>
       </nav>
     </div>
   </header>
@@ -91,12 +117,12 @@ async function saveDisplayName() {
     <div v-if="showDisplayNameModal" class="modal-overlay" @click="!isSavingDisplayName && (showDisplayNameModal = false)">
       <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="display-name-title">
         <div class="modal-header">
-          <h2 id="display-name-title">Jak mamy Cię nazywać?</h2>
-          <button class="close-btn" aria-label="Zamknij" :disabled="isSavingDisplayName" @click="showDisplayNameModal = false">&times;</button>
+          <h2 id="display-name-title">{{ t('app.displayNameModal.title') }}</h2>
+          <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingDisplayName" @click="showDisplayNameModal = false">&times;</button>
         </div>
 
         <p class="modal-hint">
-          Ta nazwa będzie widoczna dla osób, którym udostępnisz swoje listy pomysłów prezentowych.
+          {{ t('app.displayNameModal.hint') }}
         </p>
 
         <div v-if="displayNameError" class="alert alert-error mt-1" role="alert">
@@ -105,21 +131,21 @@ async function saveDisplayName() {
 
         <form @submit.prevent="saveDisplayName" class="mt-1">
           <div class="form-group">
-            <label for="display-name-input">Wyświetlana nazwa</label>
+            <label for="display-name-input">{{ t('app.displayNameModal.inputLabel') }}</label>
             <input
               id="display-name-input"
               v-model="displayNameInput"
               required
-              placeholder="Np. Kasia, Marek"
+              :placeholder="t('app.displayNameModal.inputPlaceholder')"
               :disabled="isSavingDisplayName"
             />
           </div>
           <div class="modal-actions">
             <button type="button" @click="showDisplayNameModal = false" class="btn btn-outline" :disabled="isSavingDisplayName">
-              Anuluj
+              {{ t('common.actions.cancel') }}
             </button>
             <button type="submit" class="btn" :disabled="isSavingDisplayName">
-              {{ isSavingDisplayName ? 'Zapisywanie...' : 'Zapisz' }}
+              {{ isSavingDisplayName ? t('common.actions.saving') : t('common.actions.save') }}
             </button>
           </div>
         </form>
@@ -133,7 +159,7 @@ async function saveDisplayName() {
   
   <footer class="app-footer">
     <div class="container text-center">
-      <p>&copy; 2026 Prezentownik. Stworzone z myślą o pięknych chwilach.</p>
+      <p>{{ t('app.footerText') }}</p>
     </div>
   </footer>
 </template>
@@ -204,6 +230,43 @@ async function saveDisplayName() {
 
 .set-name-btn {
   white-space: nowrap;
+}
+
+.lang-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-background-mute);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  padding: 0.15rem 0.35rem;
+  cursor: pointer;
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 4px;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.lang-btn:hover {
+  color: var(--color-accent);
+}
+
+.lang-btn.active {
+  color: #fff;
+  background-color: var(--color-accent);
+}
+
+.lang-divider {
+  color: var(--color-border);
+  font-size: 0.8rem;
 }
 
 .modal-overlay {

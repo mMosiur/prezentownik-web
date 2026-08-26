@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   listId: string
@@ -28,7 +31,7 @@ async function copyLink() {
       isCopied.value = false
     }, 2000)
   } catch {
-    copyError.value = 'Nie udało się skopiować linku. Zaznacz go i skopiuj ręcznie.'
+    copyError.value = t('shareModal.copyError')
   }
 }
 
@@ -36,8 +39,8 @@ async function nativeShare() {
   if (!navigator.share) return
   try {
     await navigator.share({
-      title: props.listName ? `Lista prezentów: ${props.listName}` : 'Lista prezentów',
-      text: 'Zobacz moją listę prezentów i zarezerwuj coś dla mnie!',
+      title: props.listName ? t('shareModal.shareTitle', { name: props.listName }) : t('shareModal.shareTitleDefault'),
+      text: t('shareModal.shareText'),
       url: shareUrl.value
     })
   } catch {
@@ -55,13 +58,16 @@ function selectInput(event: FocusEvent) {
     <div class="modal-overlay" @click="emit('close')">
       <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="share-list-title">
         <div class="modal-header">
-          <h2 id="share-list-title">Udostępnij listę</h2>
-          <button class="close-btn" aria-label="Zamknij" @click="emit('close')">&times;</button>
+          <h2 id="share-list-title">{{ t('shareModal.title') }}</h2>
+          <button class="close-btn" :aria-label="t('common.actions.close')" @click="emit('close')">&times;</button>
         </div>
 
         <p class="share-hint">
-          Każdy, kto otworzy ten link, może zobaczyć listę i zarezerwować prezenty.
-          <strong>Ty nie zobaczysz</strong>, co zostało zarezerwowane, aby prezent pozostał niespodzianką.
+          <i18n-t keypath="shareModal.hint" tag="span">
+            <template #strong>
+              <strong>{{ t('shareModal.hintStrong') }}</strong>
+            </template>
+          </i18n-t>
         </p>
 
         <div class="share-link-row mt-1">
@@ -71,19 +77,19 @@ function selectInput(event: FocusEvent) {
             :value="shareUrl"
             @focus="selectInput"
             class="share-link-input"
-            aria-label="Link do listy"
+            :aria-label="t('shareModal.linkAriaLabel')"
           />
           <button @click="copyLink" class="btn btn-outline share-copy-btn">
-            {{ isCopied ? 'Skopiowano!' : 'Kopiuj' }}
+            {{ isCopied ? t('common.actions.copied') : t('common.actions.copy') }}
           </button>
         </div>
 
         <p v-if="copyError" class="field-error-msg" role="alert">{{ copyError }}</p>
 
         <div class="modal-actions">
-          <button type="button" @click="emit('close')" class="btn btn-outline">Zamknij</button>
+          <button type="button" @click="emit('close')" class="btn btn-outline">{{ t('common.actions.close') }}</button>
           <button v-if="canNativeShare" type="button" @click="nativeShare" class="btn">
-            Udostępnij...
+            {{ t('shareModal.nativeShare') }}
           </button>
         </div>
       </div>

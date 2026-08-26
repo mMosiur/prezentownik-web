@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
 
@@ -36,29 +38,29 @@ function validateForm(): boolean {
   let isValid = true
 
   if (!trimmedEmail) {
-    fieldErrors.value.email = 'Podaj adres e-mail.'
+    fieldErrors.value.email = t('auth.register.emailRequired')
     isValid = false
   } else {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(trimmedEmail)) {
-      fieldErrors.value.email = 'Wprowadź prawidłowy format adresu e-mail.'
+      fieldErrors.value.email = t('auth.register.emailInvalid')
       isValid = false
     }
   }
 
   if (!password.value) {
-    fieldErrors.value.password = 'Wprowadź hasło.'
+    fieldErrors.value.password = t('auth.register.passwordRequired')
     isValid = false
   } else if (password.value.length < 8) {
-    fieldErrors.value.password = 'Hasło musi mieć co najmniej 8 znaków.'
+    fieldErrors.value.password = t('auth.register.passwordMinLength')
     isValid = false
   }
 
   if (!confirmPassword.value) {
-    fieldErrors.value.confirmPassword = 'Potwierdź hasło.'
+    fieldErrors.value.confirmPassword = t('auth.register.confirmPasswordRequired')
     isValid = false
   } else if (password.value !== confirmPassword.value) {
-    fieldErrors.value.confirmPassword = 'Hasła nie są identyczne.'
+    fieldErrors.value.confirmPassword = t('auth.register.passwordsMismatch')
     isValid = false
   }
 
@@ -83,13 +85,13 @@ async function handleSubmit() {
     })
     router.push({ name: 'login', query: { registered: 'true', email: email.value } })
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Rejestracja nie powiodła się. Spróbuj ponownie.')
+    const parsed = parseApiError(err, t('auth.register.failedDefault'))
     generalError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(fieldErrors.value.email || fieldErrors.value.password || fieldErrors.value.confirmPassword)
       if (!hasMatchingFieldError && !generalError.value) {
-        generalError.value = Object.values(parsed.fieldErrors)[0] || 'Rejestracja nie powiodła się. Spróbuj ponownie.'
+        generalError.value = Object.values(parsed.fieldErrors)[0] || t('auth.register.failedDefault')
       }
     }
   } finally {
@@ -102,8 +104,8 @@ async function handleSubmit() {
   <div class="container">
     <div class="auth-card card">
       <div class="auth-header text-center">
-        <h1>Dołącz do nas</h1>
-        <p class="auth-subtitle">Stwórz konto, aby zacząć tworzyć swoje listy pomysłów prezentowych.</p>
+        <h1>{{ t('auth.register.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.register.subtitle') }}</p>
       </div>
 
       <!-- Error alert banner -->
@@ -128,7 +130,7 @@ async function handleSubmit() {
         <button
           type="button"
           class="alert-close"
-          aria-label="Zamknij komunikat o błędzie"
+          :aria-label="t('common.actions.closeError')"
           @click="generalError = ''"
         >
           &times;
@@ -139,7 +141,7 @@ async function handleSubmit() {
         <!-- Email field -->
         <div class="form-group" :class="{ 'has-error': !!fieldErrors.email }">
           <label for="register-email">
-            Adres e-mail <span class="required-mark" aria-hidden="true">*</span>
+            {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
           <div class="input-wrapper">
             <input
@@ -148,7 +150,7 @@ async function handleSubmit() {
               type="email"
               name="email"
               autocomplete="username email"
-              placeholder="twoj@email.pl"
+              :placeholder="t('auth.register.emailPlaceholder')"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.email"
@@ -169,7 +171,7 @@ async function handleSubmit() {
         <!-- Password field -->
         <div class="form-group" :class="{ 'has-error': !!fieldErrors.password }">
           <label for="register-password">
-            Hasło <span class="required-mark" aria-hidden="true">*</span>
+            {{ t('common.labels.password') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
           <div class="input-wrapper password-wrapper">
             <input
@@ -178,7 +180,7 @@ async function handleSubmit() {
               :type="showPassword ? 'text' : 'password'"
               name="password"
               autocomplete="new-password"
-              placeholder="Min. 8 znaków"
+              :placeholder="t('auth.register.passwordPlaceholder')"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.password"
@@ -189,8 +191,8 @@ async function handleSubmit() {
               type="button"
               class="password-toggle-btn"
               tabindex="-1"
-              :aria-label="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
-              :title="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
+              :aria-label="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
+              :title="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
               :disabled="isSubmitting"
               @click="showPassword = !showPassword"
             >
@@ -241,7 +243,7 @@ async function handleSubmit() {
         <!-- Confirm Password field -->
         <div class="form-group" :class="{ 'has-error': !!fieldErrors.confirmPassword }">
           <label for="register-confirm-password">
-            Potwierdź hasło <span class="required-mark" aria-hidden="true">*</span>
+            {{ t('common.labels.confirmPassword') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
           <div class="input-wrapper password-wrapper">
             <input
@@ -250,7 +252,7 @@ async function handleSubmit() {
               :type="showConfirmPassword ? 'text' : 'password'"
               name="confirmPassword"
               autocomplete="new-password"
-              placeholder="Powtórz hasło"
+              :placeholder="t('auth.register.confirmPasswordPlaceholder')"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.confirmPassword"
@@ -261,8 +263,8 @@ async function handleSubmit() {
               type="button"
               class="password-toggle-btn"
               tabindex="-1"
-              :aria-label="showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
-              :title="showConfirmPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
+              :aria-label="showConfirmPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
+              :title="showConfirmPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
               :disabled="isSubmitting"
               @click="showConfirmPassword = !showConfirmPassword"
             >
@@ -318,14 +320,14 @@ async function handleSubmit() {
           :aria-busy="isSubmitting"
         >
           <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
-          <span>{{ isSubmitting ? 'Rejestracja...' : 'Zarejestruj się' }}</span>
+          <span>{{ isSubmitting ? t('auth.register.submitting') : t('auth.register.submit') }}</span>
         </button>
       </form>
 
       <div class="auth-footer text-center mt-2">
         <p>
-          Masz już konto?
-          <RouterLink :to="{ name: 'login' }" class="auth-link">Zaloguj się</RouterLink>
+          {{ t('auth.register.alreadyHaveAccount') }}
+          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.register.loginLink') }}</RouterLink>
         </p>
       </div>
     </div>

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const email = ref('')
@@ -30,13 +32,13 @@ function validateForm(): boolean {
   email.value = trimmedEmail
 
   if (!trimmedEmail) {
-    fieldErrors.value.email = 'Podaj adres e-mail.'
+    fieldErrors.value.email = t('auth.forgotPassword.emailRequired')
     return false
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(trimmedEmail)) {
-    fieldErrors.value.email = 'Wprowadź prawidłowy format adresu e-mail.'
+    fieldErrors.value.email = t('auth.forgotPassword.emailInvalid')
     return false
   }
 
@@ -60,7 +62,7 @@ async function handleSubmit() {
     // exists, so we don't leak information about registered e-mail addresses.
     isSubmitted.value = true
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się wysłać wiadomości. Spróbuj ponownie.')
+    const parsed = parseApiError(err, t('auth.forgotPassword.failedDefault'))
     generalError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
@@ -75,8 +77,8 @@ async function handleSubmit() {
   <div class="container">
     <div class="auth-card card">
       <div class="auth-header text-center">
-        <h1>Nie pamiętasz hasła?</h1>
-        <p class="auth-subtitle">Podaj swój adres e-mail, a wyślemy Ci link do zresetowania hasła.</p>
+        <h1>{{ t('auth.forgotPassword.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.forgotPassword.subtitle') }}</p>
       </div>
 
       <div
@@ -86,8 +88,8 @@ async function handleSubmit() {
         aria-live="polite"
       >
         <div class="alert-body">
-          <span class="alert-title">Sprawdź swoją skrzynkę pocztową!</span>
-          <span class="alert-desc">Jeśli konto o podanym adresie e-mail istnieje, wysłaliśmy na nie link do zresetowania hasła.</span>
+          <span class="alert-title">{{ t('auth.forgotPassword.successTitle') }}</span>
+          <span class="alert-desc">{{ t('auth.forgotPassword.successDesc') }}</span>
         </div>
       </div>
 
@@ -106,7 +108,7 @@ async function handleSubmit() {
         <form @submit.prevent="handleSubmit" class="auth-form mt-2" novalidate>
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.email }">
             <label for="forgot-password-email">
-              Adres e-mail <span class="required-mark" aria-hidden="true">*</span>
+              {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
             <div class="input-wrapper">
               <input
@@ -115,7 +117,7 @@ async function handleSubmit() {
                 type="email"
                 name="email"
                 autocomplete="username email"
-                placeholder="twoj@email.pl"
+                :placeholder="t('auth.forgotPassword.emailPlaceholder')"
                 required
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.email"
@@ -140,14 +142,14 @@ async function handleSubmit() {
             :aria-busy="isSubmitting"
           >
             <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
-            <span>{{ isSubmitting ? 'Wysyłanie...' : 'Wyślij link resetujący' }}</span>
+            <span>{{ isSubmitting ? t('auth.forgotPassword.submitting') : t('auth.forgotPassword.submit') }}</span>
           </button>
         </form>
       </template>
 
       <div class="auth-footer text-center mt-2">
         <p>
-          <RouterLink :to="{ name: 'login' }" class="auth-link">Wróć do logowania</RouterLink>
+          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.forgotPassword.backToLogin') }}</RouterLink>
         </p>
       </div>
     </div>

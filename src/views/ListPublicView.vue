@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const claimStore = useClaimStore()
@@ -91,8 +93,8 @@ async function handleClaim() {
     })
     showClaimModal.value = false
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się zarezerwować prezentu. Spróbuj ponownie.')
-    error.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się zarezerwować prezentu. Spróbuj ponownie.'
+    const parsed = parseApiError(err, t('listPublic.claimModal.failed'))
+    error.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listPublic.claimModal.failed')
   } finally {
     isSubmittingClaim.value = false
   }
@@ -114,8 +116,8 @@ async function confirmUnclaim() {
     showUnclaimModal.value = false
     itemToUnclaim.value = null
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się anulować rezerwacji.')
-    unclaimError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || 'Nie udało się anulować rezerwacji.'
+    const parsed = parseApiError(err, t('listPublic.unclaimModal.failed'))
+    unclaimError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listPublic.unclaimModal.failed')
   } finally {
     isUnclaiming.value = false
   }
@@ -137,8 +139,8 @@ function getProgress(item: PublicItem) {
     <div v-if="claimStore.currentPublicList && !isCheckingOwnership">
       <header class="public-header text-center">
         <div class="card header-card">
-          <p class="owner-prefix">Lista prezentów od:</p>
-          <h1>{{ claimStore.currentPublicList.ownerDisplayName || 'Anonima' }}</h1>
+          <p class="owner-prefix">{{ t('listPublic.ownerPrefix') }}</p>
+          <h1>{{ claimStore.currentPublicList.ownerDisplayName || t('listPublic.anonymousOwner') }}</h1>
           <h2 class="list-name">{{ claimStore.currentPublicList.name }}</h2>
           <p v-if="claimStore.currentPublicList.description" class="list-description">
             {{ claimStore.currentPublicList.description }}
@@ -147,7 +149,7 @@ function getProgress(item: PublicItem) {
       </header>
 
       <div v-if="claimStore.currentPublicList.items.length === 0" class="empty-state text-center">
-        <p>Ta lista jest jeszcze pusta.</p>
+        <p>{{ t('listPublic.empty') }}</p>
       </div>
 
       <div v-else class="items-grid mt-2">
@@ -163,19 +165,19 @@ function getProgress(item: PublicItem) {
                     <div class="progress-bar" :style="{ width: getProgress(item) + '%' }"></div>
                   </div>
                   <p class="status-text">
-                    Zarezerwowano {{ item.totalClaimed }} z {{ item.targetQuantity }}
+                    {{ t('listPublic.claimedProgress', { claimed: item.totalClaimed, target: item.targetQuantity }) }}
                   </p>
                 </template>
                 <template v-else>
-                  <p class="status-text">Zarezerwowano: {{ item.totalClaimed }}</p>
+                  <p class="status-text">{{ t('listPublic.claimedProgressUnlimited', { claimed: item.totalClaimed }) }}</p>
                 </template>
               </div>
 
               <div v-if="item.claims && item.claims.length > 0" class="claims-list">
-                <p class="claims-label">Kto już zarezerwował:</p>
+                <p class="claims-label">{{ t('listPublic.whoClaimed') }}</p>
                 <ul>
                   <li v-for="(claim, claimIndex) in item.claims" :key="claimIndex">
-                    {{ claim.claimerName || 'Anonim' }}
+                    {{ claim.claimerName || t('listPublic.anonymousClaimer') }}
                     <span v-if="item.type !== 0" class="claim-qty">&times;{{ claim.quantityClaimed }}</span>
                   </li>
                 </ul>
@@ -184,18 +186,18 @@ function getProgress(item: PublicItem) {
 
             <div class="item-actions">
               <div v-if="isClaimedByMe(item.id)" class="my-claim">
-                <span class="badge">Twój wybór!</span>
-                <button @click="openUnclaimModal(item)" class="btn btn-sm btn-outline">Anuluj</button>
+                <span class="badge">{{ t('listPublic.yourChoice') }}</span>
+                <button @click="openUnclaimModal(item)" class="btn btn-sm btn-outline">{{ t('listPublic.unclaim') }}</button>
               </div>
               <button 
                 v-else-if="item.type === 2 || Number(item.totalClaimed) < Number(item.targetQuantity)" 
                 @click="openClaim(item)" 
                 class="btn btn-block"
               >
-                Wybierz prezent
+                {{ t('listPublic.selectGift') }}
               </button>
               <div v-else class="fully-claimed">
-                <span class="check-icon">✓</span> W komplecie
+                <span class="check-icon">✓</span> {{ t('listPublic.fullyClaimed') }}
               </div>
             </div>
           </div>
@@ -207,16 +209,16 @@ function getProgress(item: PublicItem) {
         <div v-if="showClaimModal && selectedItem" class="modal-overlay" @click="!isSubmittingClaim && (showClaimModal = false)">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
             <div class="modal-header">
-              <h2 id="claim-modal-title">Rezerwacja: {{ selectedItem.name }}</h2>
-              <button class="close-btn" aria-label="Zamknij" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
+              <h2 id="claim-modal-title">{{ t('listPublic.claimModal.title', { name: selectedItem.name }) }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
             </div>
             <form @submit.prevent="handleClaim" class="mt-1">
               <div class="form-group">
-                <label>Twoje imię (opcjonalnie)</label>
-                <input v-model="claimForm.claimerName" placeholder="Np. Marek" :disabled="isSubmittingClaim" />
+                <label>{{ t('listPublic.claimModal.nameLabel') }}</label>
+                <input v-model="claimForm.claimerName" :placeholder="t('listPublic.claimModal.namePlaceholder')" :disabled="isSubmittingClaim" />
               </div>
               <div v-if="selectedItem.type === 1" class="form-group">
-                <label>Ilość</label>
+                <label>{{ t('listPublic.claimModal.quantityLabel') }}</label>
                 <input 
                   v-model="claimForm.quantityClaimed" 
                   type="number" 
@@ -228,9 +230,9 @@ function getProgress(item: PublicItem) {
               </div>
               <div v-if="error" class="error-message text-center mb-1">{{ error }}</div>
               <div class="modal-actions">
-                <button type="button" @click="showClaimModal = false" class="btn btn-outline" :disabled="isSubmittingClaim">Anuluj</button>
+                <button type="button" @click="showClaimModal = false" class="btn btn-outline" :disabled="isSubmittingClaim">{{ t('common.actions.cancel') }}</button>
                 <button type="submit" class="btn" :disabled="isSubmittingClaim">
-                  {{ isSubmittingClaim ? 'Rezerwowanie...' : 'Zarezerwuj' }}
+                  {{ isSubmittingClaim ? t('listPublic.claimModal.submitting') : t('listPublic.claimModal.submit') }}
                 </button>
               </div>
             </form>
@@ -243,24 +245,28 @@ function getProgress(item: PublicItem) {
         <div v-if="showUnclaimModal && itemToUnclaim" class="modal-overlay" @click="!isUnclaiming && (showUnclaimModal = false)">
           <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="unclaim-title">
             <div class="modal-header">
-              <h2 id="unclaim-title">Anuluj rezerwację</h2>
-              <button class="close-btn" aria-label="Zamknij" :disabled="isUnclaiming" @click="showUnclaimModal = false">&times;</button>
+              <h2 id="unclaim-title">{{ t('listPublic.unclaimModal.title') }}</h2>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isUnclaiming" @click="showUnclaimModal = false">&times;</button>
             </div>
 
             <div v-if="unclaimError" class="error-message mt-1">{{ unclaimError }}</div>
 
             <div class="confirm-content mt-1">
               <p>
-                Czy na pewno chcesz anulować rezerwację prezentu <strong>«{{ itemToUnclaim.name }}»</strong>?
+                <i18n-t keypath="listPublic.unclaimModal.confirmMessage" tag="span">
+                  <template #name>
+                    <strong>«{{ itemToUnclaim.name }}»</strong>
+                  </template>
+                </i18n-t>
               </p>
             </div>
 
             <div class="modal-actions">
               <button type="button" @click="showUnclaimModal = false" class="btn btn-outline" :disabled="isUnclaiming">
-                Wróć
+                {{ t('common.actions.back') }}
               </button>
               <button type="button" @click="confirmUnclaim" class="btn btn-danger-solid" :disabled="isUnclaiming">
-                {{ isUnclaiming ? 'Anulowanie...' : 'Anuluj rezerwację' }}
+                {{ isUnclaiming ? t('listPublic.unclaimModal.submitting') : t('listPublic.unclaimModal.submit') }}
               </button>
             </div>
           </div>
@@ -268,10 +274,10 @@ function getProgress(item: PublicItem) {
       </Teleport>
     </div>
     <div v-else-if="loadError" class="text-center mt-2">
-      <p>Nie udało się znaleźć tej listy prezentowej. Sprawdź, czy link jest poprawny.</p>
+      <p>{{ t('listPublic.notFound') }}</p>
     </div>
     <div v-else class="text-center mt-2">
-      <p>Ładowanie listy prezentowej...</p>
+      <p>{{ t('listPublic.loading') }}</p>
     </div>
   </div>
 </template>

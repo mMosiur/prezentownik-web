@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const route = useRoute()
 
@@ -31,13 +33,13 @@ function validateForm(): boolean {
   email.value = trimmedEmail
 
   if (!trimmedEmail) {
-    fieldErrors.value.email = 'Podaj adres e-mail.'
+    fieldErrors.value.email = t('auth.resendConfirmation.emailRequired')
     return false
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(trimmedEmail)) {
-    fieldErrors.value.email = 'Wprowadź prawidłowy format adresu e-mail.'
+    fieldErrors.value.email = t('auth.resendConfirmation.emailInvalid')
     return false
   }
 
@@ -61,7 +63,7 @@ async function handleSubmit() {
     // exists or is already confirmed, so we don't leak account information.
     isSubmitted.value = true
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Nie udało się wysłać wiadomości. Spróbuj ponownie.')
+    const parsed = parseApiError(err, t('auth.resendConfirmation.failedDefault'))
     generalError.value = parsed.message
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
@@ -76,8 +78,8 @@ async function handleSubmit() {
   <div class="container">
     <div class="auth-card card">
       <div class="auth-header text-center">
-        <h1>Wyślij link potwierdzający ponownie</h1>
-        <p class="auth-subtitle">Podaj swój adres e-mail, a wyślemy nowy link potwierdzający konto.</p>
+        <h1>{{ t('auth.resendConfirmation.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.resendConfirmation.subtitle') }}</p>
       </div>
 
       <div
@@ -87,8 +89,8 @@ async function handleSubmit() {
         aria-live="polite"
       >
         <div class="alert-body">
-          <span class="alert-title">Sprawdź swoją skrzynkę pocztową!</span>
-          <span class="alert-desc">Jeśli konto o podanym adresie e-mail istnieje i nie zostało jeszcze potwierdzone, wysłaliśmy na nie nowy link potwierdzający.</span>
+          <span class="alert-title">{{ t('auth.resendConfirmation.successTitle') }}</span>
+          <span class="alert-desc">{{ t('auth.resendConfirmation.successDesc') }}</span>
         </div>
       </div>
 
@@ -107,7 +109,7 @@ async function handleSubmit() {
         <form @submit.prevent="handleSubmit" class="auth-form mt-2" novalidate>
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.email }">
             <label for="resend-confirmation-email">
-              Adres e-mail <span class="required-mark" aria-hidden="true">*</span>
+              {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
             <div class="input-wrapper">
               <input
@@ -116,7 +118,7 @@ async function handleSubmit() {
                 type="email"
                 name="email"
                 autocomplete="username email"
-                placeholder="twoj@email.pl"
+                :placeholder="t('auth.resendConfirmation.emailPlaceholder')"
                 required
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.email"
@@ -141,14 +143,14 @@ async function handleSubmit() {
             :aria-busy="isSubmitting"
           >
             <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
-            <span>{{ isSubmitting ? 'Wysyłanie...' : 'Wyślij link ponownie' }}</span>
+            <span>{{ isSubmitting ? t('auth.resendConfirmation.submitting') : t('auth.resendConfirmation.submit') }}</span>
           </button>
         </form>
       </template>
 
       <div class="auth-footer text-center mt-2">
         <p>
-          <RouterLink :to="{ name: 'login' }" class="auth-link">Wróć do logowania</RouterLink>
+          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resendConfirmation.backToLogin') }}</RouterLink>
         </p>
       </div>
     </div>

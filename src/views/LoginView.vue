@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute, RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -49,19 +51,19 @@ function validateForm(): boolean {
   let isValid = true
 
   if (!trimmedEmail) {
-    fieldErrors.value.email = 'Podaj adres e-mail.'
+    fieldErrors.value.email = t('auth.login.emailRequired')
     isValid = false
   } else {
     // Basic standard email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(trimmedEmail)) {
-      fieldErrors.value.email = 'Wprowadź prawidłowy format adresu e-mail.'
+      fieldErrors.value.email = t('auth.login.emailInvalid')
       isValid = false
     }
   }
 
   if (!password.value) {
-    fieldErrors.value.password = 'Wprowadź hasło.'
+    fieldErrors.value.password = t('auth.login.passwordRequired')
     isValid = false
   }
 
@@ -95,14 +97,14 @@ async function handleSubmit() {
       router.push({ name: 'dashboard' })
     }
   } catch (err: unknown) {
-    const parsed = parseApiError(err, 'Logowanie nie powiodło się. Sprawdź swoje dane i spróbuj ponownie.')
+    const parsed = parseApiError(err, t('auth.login.failedDefault'))
     generalError.value = parsed.message
     isEmailNotConfirmed.value = parsed.code === 'email-not-confirmed'
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
       fieldErrors.value = { ...parsed.fieldErrors }
       const hasMatchingFieldError = !!(fieldErrors.value.email || fieldErrors.value.password)
       if (!hasMatchingFieldError && !generalError.value) {
-        generalError.value = Object.values(parsed.fieldErrors)[0] || 'Logowanie nie powiodło się. Sprawdź swoje dane i spróbuj ponownie.'
+        generalError.value = Object.values(parsed.fieldErrors)[0] || t('auth.login.failedDefault')
       }
     }
   } finally {
@@ -115,8 +117,8 @@ async function handleSubmit() {
   <div class="container">
     <div class="auth-card card">
       <div class="auth-header text-center">
-        <h1>Witaj ponownie</h1>
-        <p class="auth-subtitle">Zaloguj się, aby zarządzać swoimi listami prezentowymi.</p>
+        <h1>{{ t('auth.login.title') }}</h1>
+        <p class="auth-subtitle">{{ t('auth.login.subtitle') }}</p>
       </div>
 
       <!-- Registration success flash message -->
@@ -136,21 +138,21 @@ async function handleSubmit() {
           </svg>
         </div>
         <div class="alert-body">
-          <span class="alert-title">Konto zostało utworzone!</span>
+          <span class="alert-title">{{ t('auth.login.registeredSuccessTitle') }}</span>
           <span class="alert-desc">
-            Na Twój adres e-mail wysłaliśmy link potwierdzający. Sprawdź swoją skrzynkę pocztową i aktywuj konto, aby móc się zalogować.
+            {{ t('auth.login.registeredSuccessDesc') }}
           </span>
           <RouterLink
             :to="{ name: 'resend-confirmation', query: email ? { email } : {} }"
             class="auth-link alert-action-link"
           >
-            Nie otrzymałeś wiadomości? Wyślij link ponownie
+            {{ t('auth.login.registeredSuccessResend') }}
           </RouterLink>
         </div>
         <button
           type="button"
           class="alert-close"
-          aria-label="Zamknij powiadomienie"
+          :aria-label="t('common.actions.closeNotification')"
           @click="showRegisteredSuccess = false"
         >
           &times;
@@ -180,13 +182,13 @@ async function handleSubmit() {
             :to="{ name: 'resend-confirmation', query: { email } }"
             class="auth-link alert-action-link"
           >
-            Wyślij link potwierdzający ponownie
+            {{ t('auth.login.notConfirmedResend') }}
           </RouterLink>
         </div>
         <button
           type="button"
           class="alert-close"
-          aria-label="Zamknij komunikat o błędzie"
+          :aria-label="t('common.actions.closeError')"
           @click="generalError = ''; isEmailNotConfirmed = false"
         >
           &times;
@@ -197,7 +199,7 @@ async function handleSubmit() {
         <!-- Email field -->
         <div class="form-group" :class="{ 'has-error': !!fieldErrors.email }">
           <label for="login-email">
-            Adres e-mail <span class="required-mark" aria-hidden="true">*</span>
+            {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
           <div class="input-wrapper">
             <input
@@ -206,7 +208,7 @@ async function handleSubmit() {
               type="email"
               name="email"
               autocomplete="username email"
-              placeholder="twoj@email.pl"
+              :placeholder="t('auth.login.emailPlaceholder')"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.email"
@@ -227,7 +229,7 @@ async function handleSubmit() {
         <!-- Password field -->
         <div class="form-group" :class="{ 'has-error': !!fieldErrors.password }">
           <label for="login-password">
-            Hasło <span class="required-mark" aria-hidden="true">*</span>
+            {{ t('common.labels.password') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
           <div class="input-wrapper password-wrapper">
             <input
@@ -236,7 +238,7 @@ async function handleSubmit() {
               :type="showPassword ? 'text' : 'password'"
               name="password"
               autocomplete="current-password"
-              placeholder="••••••••"
+              :placeholder="t('auth.login.passwordPlaceholder')"
               required
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.password"
@@ -247,8 +249,8 @@ async function handleSubmit() {
               type="button"
               class="password-toggle-btn"
               tabindex="-1"
-              :aria-label="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
-              :title="showPassword ? 'Ukryj hasło' : 'Pokaż hasło'"
+              :aria-label="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
+              :title="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
               :disabled="isSubmitting"
               @click="showPassword = !showPassword"
             >
@@ -307,9 +309,9 @@ async function handleSubmit() {
               :disabled="isSubmitting"
             />
             <span class="checkbox-checkmark"></span>
-            <span class="checkbox-label">Zapamiętaj mnie na tym urządzeniu</span>
+            <span class="checkbox-label">{{ t('auth.login.rememberMe') }}</span>
           </label>
-          <RouterLink :to="{ name: 'forgot-password' }" class="auth-link forgot-password-link">Nie pamiętasz hasła?</RouterLink>
+          <RouterLink :to="{ name: 'forgot-password' }" class="auth-link forgot-password-link">{{ t('auth.login.forgotPassword') }}</RouterLink>
         </div>
 
         <!-- Submit Button -->
@@ -320,18 +322,18 @@ async function handleSubmit() {
           :aria-busy="isSubmitting"
         >
           <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
-          <span>{{ isSubmitting ? 'Logowanie...' : 'Zaloguj się' }}</span>
+          <span>{{ isSubmitting ? t('auth.login.submitting') : t('auth.login.submit') }}</span>
         </button>
       </form>
 
       <div class="auth-footer text-center mt-2">
         <p>
-          Nie masz jeszcze konta?
-          <RouterLink :to="{ name: 'register' }" class="auth-link">Zarejestruj się</RouterLink>
+          {{ t('auth.login.noAccount') }}
+          <RouterLink :to="{ name: 'register' }" class="auth-link">{{ t('auth.login.registerLink') }}</RouterLink>
         </p>
         <p class="mt-1">
-          Nie otrzymałeś e-maila potwierdzającego?
-          <RouterLink :to="{ name: 'resend-confirmation' }" class="auth-link">Wyślij ponownie</RouterLink>
+          {{ t('auth.login.resendEmailPrompt') }}
+          <RouterLink :to="{ name: 'resend-confirmation' }" class="auth-link">{{ t('auth.login.resendEmailLink') }}</RouterLink>
         </p>
       </div>
     </div>
