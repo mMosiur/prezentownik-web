@@ -46,9 +46,25 @@ export const useClaimStore = defineStore('claim', () => {
     if (tokens.length === 0) return
 
     try {
-      await client.post<AdoptClaimsResponse>('/lists/claims/adopt', {
+      const response = await client.post<AdoptClaimsResponse>('/lists/claims/adopt', {
         revocationTokens: tokens
       })
+      if (response.data.adoptedClaimsRevocationTokens?.length) {
+        const adoptedSet = new Set(
+          response.data.adoptedClaimsRevocationTokens.map((token: string) => token.toLowerCase())
+        )
+        const keysToRemove: string[] = []
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i)
+          if (key && key.startsWith('claim_')) {
+            const token = localStorage.getItem(key)
+            if (token && adoptedSet.has(token.toLowerCase())) {
+              keysToRemove.push(key)
+            }
+          }
+        }
+        keysToRemove.forEach((key: string) => localStorage.removeItem(key))
+      }
     } catch (error) {
       console.error('Failed to adopt stored claims', error)
     }
@@ -62,15 +78,6 @@ export const useClaimStore = defineStore('claim', () => {
       // Sort items by orderNumber ascending
       if (currentPublicList.value.items) {
         currentPublicList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
-        for (const item of currentPublicList.value.items) {
-          if (item.claims) {
-            for (const claim of item.claims) {
-              if (claim.revocationToken) {
-                setRevocationToken(item.id, claim.revocationToken)
-              }
-            }
-          }
-        }
       }
     } finally {
       isLoading.value = false
