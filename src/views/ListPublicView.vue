@@ -2,6 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import axios from 'axios'
 import { useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
@@ -36,35 +37,20 @@ const unclaimError = ref('')
 const isUnclaiming = ref(false)
 
 onMounted(async () => {
-  // The public fetch fails with 403 when the caller is the list owner - that
-  // must NOT stop us from attempting the owner redirect below, so any error
-  // here is captured instead of being allowed to propagate.
-  let publicFetchFailed = false
   try {
     await claimStore.fetchPublicList(listId)
-  } catch {
-    publicFetchFailed = true
-  }
-
-  if (authStore.isAuthenticated) {
-    try {
-      await authStore.fetchUser()
-      const listStore = (await import('@/stores/list')).useListStore()
-      await listStore.fetchListDetails(listId)
-      // Fetching the owner-only details succeeded, so this visitor is the
-      // list's author. Redirect immediately to the management view without
-      // ever displaying claim information on this page.
+    isCheckingOwnership.value = false
+  } catch (err: unknown) {
+    if (axios.isAxiosError(err) && err.response?.status === 403) {
+      // The public endpoint returned 403 Forbidden because the current authenticated user
+      // is the owner of this list. Redirect immediately to the management view so they do not
+      // see claims or spoil the surprise.
       await router.replace({ name: 'list-manage', params: { listId }, query: { fromPublic: '1' } })
       return
-    } catch {
-      // Not the owner - fall through and show the public page below.
     }
-  }
-
-  if (publicFetchFailed) {
     loadError.value = true
+    isCheckingOwnership.value = false
   }
-  isCheckingOwnership.value = false
 })
 
 useEscapeKey(() => {
@@ -130,8 +116,10 @@ function isClaimedByMe(itemId: string) {
 }
 
 function getProgress(item: PublicItem) {
-  if (item.type === 2) return 0
-  return Math.min(100, (Number(item.totalClaimed) / Number(item.targetQuantity)) * 100)
+  if (item.type === 2 || !item.targetQuantity || Number(item.targetQuantity) <= 0) return 0
+  const claimed = Number(item.totalClaimed) || 0
+  const target = Number(item.targetQuantity)
+  return Math.min(100, Math.max(0, (claimed / target) * 100))
 }
 </script>
 
@@ -322,8 +310,9 @@ function getProgress(item: PublicItem) {
     <div v-else-if="loadError" class="text-center mt-2">
       <p>{{ t('listPublic.notFound') }}</p>
     </div>
-    <div v-else class="text-center mt-2">
-      <p>{{ t('listPublic.loading') }}</p>
+    <div v-else class="loading-state card text-center mt-2" aria-live="polite" aria-busy="true">
+      <span class="spinner spinner-lg" aria-hidden="true"></span>
+      <p class="loading-text">{{ t('listPublic.loading') }}</p>
     </div>
   </div>
 </template>

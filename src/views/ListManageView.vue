@@ -336,7 +336,7 @@ function getItemTypeName(type: number) {
 
 <template>
   <div class="container mt-2">
-    <div v-if="listStore.currentList">
+    <div v-if="listStore.currentList && listStore.currentList.id === listId">
       <div class="navigation-header">
         <RouterLink :to="{ name: 'dashboard' }" class="back-link">&larr; {{ t('listManage.backToDashboard') }}</RouterLink>
       </div>
@@ -663,8 +663,9 @@ function getItemTypeName(type: number) {
         </RouterLink>
       </div>
     </div>
-    <div v-else class="text-center mt-2">
-      <p>{{ t('listManage.loading') }}</p>
+    <div v-else class="loading-state card text-center mt-2" aria-live="polite" aria-busy="true">
+      <span class="spinner spinner-lg" aria-hidden="true"></span>
+      <p class="loading-text">{{ t('listManage.loading') }}</p>
     </div>
   </div>
 </template>

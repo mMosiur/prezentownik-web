@@ -32,6 +32,8 @@
     }
   },
   "app": {
+    "loading": "Ładowanie...",
+    "serverWakingUp": "Uruchamianie serwera (pierwsze zapytanie może potrwać kilka sekund)...",
     "footerText": "2026 Prezentownik.info.pl",
     "displayNameModal": {
       "title": "Jak mamy Cię nazywać?",
@@ -45,6 +47,7 @@
   "nav": {
     "title": "Prezentownik",
     "dashboard": "Moje Listy",
+    "account": "Konto",
     "login": "Logowanie",
     "register": "Rejestracja",
     "logout": "Wyloguj",
@@ -52,6 +55,23 @@
     "setName": "Ustaw nazwę",
     "setNameTooltip": "Ustaw nazwę, którą zobaczą bliscy",
     "language": "Język"
+  },
+  "account": {
+    "title": "Ustawienia konta",
+    "subtitle": "Zarządzaj informacjami o swoim profilu i danymi konta.",
+    "profileSection": "Informacje o profilu",
+    "emailLabel": "Adres e-mail",
+    "emailHint": "Ten adres e-mail służy do logowania do Twojego konta.",
+    "displayNameLabel": "Wyświetlana nazwa",
+    "displayNamePlaceholder": "np. Kasia, Marek",
+    "displayNameHint": "Ta nazwa będzie widoczna dla osób, którym udostępnisz swoje listy pomysłów na prezenty.",
+    "displayNameRequired": "Podaj wyświetlaną nazwę.",
+    "saveSuccess": "Dane konta zostały pomyślnie zaktualizowane.",
+    "saveFailed": "Nie udało się zaktualizować danych konta.",
+    "sessionSection": "Sesja",
+    "sessionHint": "Wyloguj się ze swojego konta na tym urządzeniu.",
+    "logout": "Wyloguj się",
+    "loggingOut": "Wylogowywanie..."
   },
   "home": {
     "heroTitle": "Podarunki tylko takie, które naprawdę cieszą",

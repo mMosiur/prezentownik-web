@@ -188,8 +188,9 @@ function openShareModal(list: ListSummary) {
       <button @click="openCreateModal" class="btn">{{ t('dashboard.newList') }}</button>
     </div>
 
-    <div v-if="listStore.isLoading && listStore.lists.length === 0" class="text-center mt-2">
-      <p>{{ t('dashboard.loading') }}</p>
+    <div v-if="listStore.isLoading && listStore.lists.length === 0" class="loading-state card text-center mt-2" aria-live="polite" aria-busy="true">
+      <span class="spinner spinner-lg" aria-hidden="true"></span>
+      <p class="loading-text">{{ t('dashboard.loading') }}</p>
     </div>
     
     <div v-else-if="listStore.lists.length === 0" class="empty-state card text-center mt-2">

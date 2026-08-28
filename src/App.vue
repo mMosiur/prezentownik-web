@@ -1,62 +1,50 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { RouterLink, RouterView, useRouter } from 'vue-router'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { RouterLink, RouterView } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
-import { parseApiError } from '@/utils/errors'
-import { useEscapeKey } from '@/composables/useEscapeKey'
 import { useLanguage } from '@/composables/useLanguage'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
-const router = useRouter()
 const { currentLang, changeLanguage, supportedLanguages } = useLanguage()
 
-const showDisplayNameModal = ref(false)
-const displayNameInput = ref('')
-const isSavingDisplayName = ref(false)
-const displayNameError = ref('')
 const iconUrl = `${import.meta.env.BASE_URL}favicon.svg`
 
-async function handleLogout() {
-  try {
-    await authStore.logout()
-  } finally {
-    router.push({ name: 'home' })
+const showColdStartHint = ref(false)
+let coldStartTimer: ReturnType<typeof setTimeout> | null = null
+
+function checkColdStartTimer() {
+  if (authStore.isLoading) {
+    if (!coldStartTimer) {
+      coldStartTimer = setTimeout(() => {
+        if (authStore.isLoading) {
+          showColdStartHint.value = true
+        }
+      }, 2500)
+    }
+  } else {
+    if (coldStartTimer) {
+      clearTimeout(coldStartTimer)
+      coldStartTimer = null
+    }
+    showColdStartHint.value = false
   }
 }
 
-function openDisplayNameModal() {
-  displayNameInput.value = authStore.user?.displayName ?? ''
-  displayNameError.value = ''
-  showDisplayNameModal.value = true
-}
-
-useEscapeKey(() => {
-  if (showDisplayNameModal.value && !isSavingDisplayName.value) showDisplayNameModal.value = false
+onMounted(() => {
+  checkColdStartTimer()
 })
 
-async function saveDisplayName() {
-  if (isSavingDisplayName.value) return
+watch(() => authStore.isLoading, () => {
+  checkColdStartTimer()
+})
 
-  const trimmed = displayNameInput.value.trim()
-  if (!trimmed) {
-    displayNameError.value = t('app.displayNameModal.required')
-    return
+onUnmounted(() => {
+  if (coldStartTimer) {
+    clearTimeout(coldStartTimer)
   }
-
-  isSavingDisplayName.value = true
-  displayNameError.value = ''
-  try {
-    await authStore.updateUser({ displayName: trimmed })
-    showDisplayNameModal.value = false
-  } catch (err: unknown) {
-    const parsed = parseApiError(err, t('app.displayNameModal.failed'))
-    displayNameError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('app.displayNameModal.failed')
-  } finally {
-    isSavingDisplayName.value = false
-  }
-}
+})
 </script>
 
 <template>
@@ -68,20 +56,14 @@ async function saveDisplayName() {
       </RouterLink>
       
       <nav class="main-nav">
-        <template v-if="authStore.isAuthenticated">
-          <span class="welcome-text">
-            {{ t('nav.welcome', { name: authStore.user?.displayName ? `, ${authStore.user.displayName}` : '' }) }}
+        <template v-if="authStore.isLoading">
+          <span class="nav-loading-placeholder" aria-label="Loading">
+            <span class="spinner spinner-sm" aria-hidden="true"></span>
           </span>
-          <button
-            v-if="!authStore.user?.displayName"
-            @click="openDisplayNameModal"
-            class="btn btn-sm btn-outline set-name-btn"
-            :title="t('nav.setNameTooltip')"
-          >
-            {{ t('nav.setName') }}
-          </button>
+        </template>
+        <template v-else-if="authStore.isAuthenticated">
           <RouterLink :to="{ name: 'dashboard' }" class="nav-link">{{ t('nav.dashboard') }}</RouterLink>
-          <button @click="handleLogout" class="btn btn-outline btn-sm">{{ t('nav.logout') }}</button>
+          <RouterLink :to="{ name: 'account' }" class="nav-link">{{ t('nav.account') }}</RouterLink>
         </template>
         <template v-else>
           <RouterLink :to="{ name: 'login' }" class="nav-link">{{ t('nav.login') }}</RouterLink>
@@ -108,48 +90,17 @@ async function saveDisplayName() {
     </div>
   </header>
 
-  <Teleport to="body">
-    <div v-if="showDisplayNameModal" class="modal-overlay" @click="!isSavingDisplayName && (showDisplayNameModal = false)">
-      <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="display-name-title">
-        <div class="modal-header">
-          <h2 id="display-name-title">{{ t('app.displayNameModal.title') }}</h2>
-          <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingDisplayName" @click="showDisplayNameModal = false">&times;</button>
-        </div>
-
-        <p class="modal-hint">
-          {{ t('app.displayNameModal.hint') }}
+  <main class="app-main">
+    <div v-if="authStore.isLoading" class="container mt-2">
+      <div class="card loading-state text-center" aria-live="polite" aria-busy="true">
+        <span class="spinner spinner-lg" aria-hidden="true"></span>
+        <p class="loading-text">{{ t('app.loading') }}</p>
+        <p v-if="showColdStartHint" class="loading-subtext">
+          {{ t('app.serverWakingUp') }}
         </p>
-
-        <div v-if="displayNameError" class="alert alert-error mt-1" role="alert">
-          <span class="alert-desc">{{ displayNameError }}</span>
-        </div>
-
-        <form @submit.prevent="saveDisplayName" class="mt-1">
-          <div class="form-group">
-            <label for="display-name-input">{{ t('app.displayNameModal.inputLabel') }}</label>
-            <input
-              id="display-name-input"
-              v-model="displayNameInput"
-              required
-              :placeholder="t('app.displayNameModal.inputPlaceholder')"
-              :disabled="isSavingDisplayName"
-            />
-          </div>
-          <div class="modal-actions">
-            <button type="button" @click="showDisplayNameModal = false" class="btn btn-outline" :disabled="isSavingDisplayName">
-              {{ t('common.actions.cancel') }}
-            </button>
-            <button type="submit" class="btn" :disabled="isSavingDisplayName">
-              {{ isSavingDisplayName ? t('common.actions.saving') : t('common.actions.save') }}
-            </button>
-          </div>
-        </form>
       </div>
     </div>
-  </Teleport>
-
-  <main class="app-main">
-    <RouterView />
+    <RouterView v-else />
   </main>
   
   <footer class="app-footer">
@@ -198,13 +149,25 @@ async function saveDisplayName() {
 .main-nav {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
+}
+
+.nav-loading-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
 }
 
 .nav-link {
   font-weight: 600;
   color: var(--color-text);
   font-size: 0.95rem;
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--color-accent);
 }
 
 .nav-link.router-link-active {
@@ -214,17 +177,6 @@ async function saveDisplayName() {
 .btn-sm {
   padding: 0.4rem 1rem;
   font-size: 0.9rem;
-}
-
-.welcome-text {
-  font-weight: 600;
-  color: var(--color-heading);
-  font-size: 0.95rem;
-  white-space: nowrap;
-}
-
-.set-name-btn {
-  white-space: nowrap;
 }
 
 .lang-selector {
@@ -263,76 +215,6 @@ async function saveDisplayName() {
   box-shadow: 0 0 0 2px var(--color-accent-soft);
 }
 
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-  padding: 1rem;
-}
-
-.modal {
-  width: 100%;
-  max-width: 450px;
-  margin-bottom: 0;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-hint {
-  color: #666;
-  font-size: 0.9rem;
-  margin-top: 0.75rem;
-  line-height: 1.4;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 2rem;
-  line-height: 1;
-  color: #999;
-  cursor: pointer;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.alert {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  border-radius: var(--radius-md);
-  margin-bottom: 1rem;
-  font-size: 0.95rem;
-}
-
-.alert-error {
-  background-color: #fff5f5;
-  border: 1px solid #feb2b2;
-  color: #c53030;
-}
-
-.alert-desc {
-  line-height: 1.4;
-}
-
 .app-main {
   flex: 1;
   padding-top: 1rem;
@@ -352,13 +234,9 @@ async function saveDisplayName() {
 
   .main-nav {
     flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.75rem;
     align-items: center;
     justify-content: flex-end;
-  }
-
-  .welcome-text {
-    display: none;
   }
 }
 
@@ -374,7 +252,7 @@ async function saveDisplayName() {
   }
   
   .main-nav {
-    gap: 0.35rem;
+    gap: 0.5rem;
   }
   
   .nav-link {
@@ -386,24 +264,10 @@ async function saveDisplayName() {
     font-size: 0.8rem;
   }
 
-  .set-name-btn {
-    padding: 0.35rem 0.5rem;
-    font-size: 0.8rem;
-  }
-
   .lang-select {
     padding: 0.25rem 1.4rem 0.25rem 0.5rem;
     font-size: 0.8rem;
     background-position: right 0.35rem center;
-  }
-
-  .modal-actions {
-    flex-direction: column-reverse;
-    gap: 0.5rem;
-  }
-
-  .modal-actions .btn {
-    width: 100%;
   }
 }
 </style>

@@ -52,6 +52,12 @@ const router = createRouter({
       meta: { auth: true }
     },
     {
+      path: '/account',
+      name: 'account',
+      component: () => import('../views/AccountView.vue'),
+      meta: { auth: true }
+    },
+    {
       path: '/dashboard/lists/:listId',
       name: 'list-manage',
       component: () => import('../views/ListManageView.vue'),
