@@ -16,7 +16,7 @@ const showDisplayNameModal = ref(false)
 const displayNameInput = ref('')
 const isSavingDisplayName = ref(false)
 const displayNameError = ref('')
-const iconUrl = `${import.meta.env.BASE_URL}prezentownik-icon.svg`
+const iconUrl = `${import.meta.env.BASE_URL}favicon.svg`
 
 async function handleLogout() {
   try {
