@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const route = useRoute()
 
-const email = ref('')
+const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
 const isSubmitting = ref(false)
 const isSubmitted = ref(false)
 

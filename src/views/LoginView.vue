@@ -311,7 +311,7 @@ async function handleSubmit() {
             <span class="checkbox-checkmark"></span>
             <span class="checkbox-label">{{ t('auth.login.rememberMe') }}</span>
           </label>
-          <RouterLink :to="{ name: 'forgot-password' }" class="auth-link forgot-password-link">{{ t('auth.login.forgotPassword') }}</RouterLink>
+          <RouterLink :to="{ name: 'forgot-password', query: email ? { email } : {} }" class="auth-link forgot-password-link">{{ t('auth.login.forgotPassword') }}</RouterLink>
         </div>
 
         <!-- Submit Button -->

@@ -151,6 +151,10 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
     }
   }
 
+  if (fieldMessages.length > 0) {
+    console.log(fieldMessages.join('\n')) // Do something more useful with that in the future
+  }
+
   // Status code specific handling
   if (status === 401) {
     const detail = data?.detail || data?.message || data?.title
