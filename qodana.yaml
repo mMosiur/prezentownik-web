@@ -10,7 +10,7 @@
 version: "1.0"
 
 # Qodana JS/TS linter
-linter: jetbrains/qodana-js:latest
+linter: jetbrains/qodana-cdnet:2026.2
 
 #Specify inspection profile for code analysis
 profile:
