@@ -699,7 +699,7 @@ function extractUrl(text: string | null): string | null {
                     >
                       <div class="type-choice-icon">🎁</div>
                       <div class="type-choice-info">
-                        <span class="type-choice-title">{{ t('listManage.itemTypes.single') }}</span>
+                        <p class="type-choice-title">{{ t('listManage.itemTypes.single') }}</p>
                         <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintSingle') }}</span>
                       </div>
                     </button>
@@ -712,7 +712,7 @@ function extractUrl(text: string | null): string | null {
                     >
                       <div class="type-choice-icon">🔢</div>
                       <div class="type-choice-info">
-                        <span class="type-choice-title">{{ t('listManage.itemTypes.quantity') }}</span>
+                        <p class="type-choice-title">{{ t('listManage.itemTypes.quantity') }}</p>
                         <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintQuantity') }}</span>
                       </div>
                     </button>
@@ -725,7 +725,7 @@ function extractUrl(text: string | null): string | null {
                     >
                       <div class="type-choice-icon">♾️</div>
                       <div class="type-choice-info">
-                        <span class="type-choice-title">{{ t('listManage.itemTypes.unlimited') }}</span>
+                        <p class="type-choice-title">{{ t('listManage.itemTypes.unlimited') }}</p>
                         <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintUnlimited') }}</span>
                       </div>
                     </button>
