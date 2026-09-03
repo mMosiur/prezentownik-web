@@ -59,8 +59,6 @@ async function handleSubmit() {
 
   try {
     await authStore.resendConfirmationEmail({ email: email.value })
-    // Always show a success message, regardless of whether the account
-    // exists or is already confirmed, so we don't leak account information.
     isSubmitted.value = true
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('auth.resendConfirmation.failedDefault'))
@@ -75,10 +73,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="container">
-    <div class="auth-card card">
+  <div class="container container-narrow">
+    <div class="auth-card card card-elevated">
       <div class="auth-header text-center">
-        <h1>{{ t('auth.resendConfirmation.title') }}</h1>
+        <div class="auth-icon-badge">
+          <span>✉️</span>
+        </div>
+        <h1 class="mt-1">{{ t('auth.resendConfirmation.title') }}</h1>
         <p class="auth-subtitle">{{ t('auth.resendConfirmation.subtitle') }}</p>
       </div>
 
@@ -88,6 +89,15 @@ async function handleSubmit() {
         role="status"
         aria-live="polite"
       >
+        <div class="alert-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
         <div class="alert-body">
           <span class="alert-title">{{ t('auth.resendConfirmation.successTitle') }}</span>
           <span class="alert-desc">{{ t('auth.resendConfirmation.successDesc') }}</span>
@@ -101,9 +111,26 @@ async function handleSubmit() {
           role="alert"
           aria-live="assertive"
         >
+          <div class="alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
           <div class="alert-body">
             <span class="alert-desc">{{ generalError }}</span>
           </div>
+          <button
+            type="button"
+            class="alert-close"
+            :aria-label="t('common.actions.closeError')"
+            @click="generalError = ''"
+          >
+            &times;
+          </button>
         </div>
 
         <form @submit.prevent="handleSubmit" class="auth-form mt-2" novalidate>
@@ -111,24 +138,29 @@ async function handleSubmit() {
             <label for="resend-confirmation-email">
               {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
-            <div class="input-wrapper">
+            <div class="input-icon-wrapper">
+              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+                <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+              </svg>
               <input
                 id="resend-confirmation-email"
                 v-model="email"
                 type="email"
                 name="email"
-                autocomplete="username email"
+                autocomplete="email"
                 :placeholder="t('auth.resendConfirmation.emailPlaceholder')"
                 required
+                class="with-icon"
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.email"
-                :aria-describedby="fieldErrors.email ? 'resend-confirmation-email-error' : undefined"
+                :aria-describedby="fieldErrors.email ? 'resend-email-error' : undefined"
                 @input="clearFieldError('email')"
               />
             </div>
             <p
               v-if="fieldErrors.email"
-              id="resend-confirmation-email-error"
+              id="resend-email-error"
               class="field-error-msg"
               role="alert"
             >
@@ -138,20 +170,18 @@ async function handleSubmit() {
 
           <button
             type="submit"
-            class="btn btn-block btn-submit"
+            class="btn btn-block btn-submit mt-1"
             :disabled="isSubmitting"
             :aria-busy="isSubmitting"
           >
-            <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
+            <span v-if="isSubmitting" class="spinner spinner-sm" aria-hidden="true"></span>
             <span>{{ isSubmitting ? t('auth.resendConfirmation.submitting') : t('auth.resendConfirmation.submit') }}</span>
           </button>
         </form>
       </template>
 
       <div class="auth-footer text-center mt-2">
-        <p>
-          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resendConfirmation.backToLogin') }}</RouterLink>
-        </p>
+        <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resendConfirmation.backToLogin') }}</RouterLink>
       </div>
     </div>
   </div>
@@ -162,21 +192,34 @@ async function handleSubmit() {
   max-width: 460px;
   margin: 2.5rem auto;
   padding: 2.25rem 2rem;
+  border-radius: var(--radius-xl);
+}
+
+.auth-icon-badge {
+  font-size: 2.2rem;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  background: var(--color-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--shadow-xs);
 }
 
 .auth-header h1 {
-  font-size: 1.75rem;
-  margin-bottom: 0.35rem;
+  font-size: 1.85rem;
+  margin-bottom: 0.25rem;
   color: var(--color-heading);
 }
 
 .auth-subtitle {
-  color: #5a736e;
-  font-size: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
 }
 
+/* Alert Styles */
 .alert {
   display: flex;
   align-items: flex-start;
@@ -186,18 +229,11 @@ async function handleSubmit() {
   font-size: 0.95rem;
   line-height: 1.4;
   margin-bottom: 1.25rem;
-  animation: fadeIn 0.25s ease-in-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .alert-body {
@@ -216,139 +252,71 @@ async function handleSubmit() {
   font-size: 0.9rem;
 }
 
+.alert-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
 .alert-success {
-  background-color: #ebfbee;
-  color: #2b8a3e;
-  border: 1px solid #b2f2bb;
+  background-color: var(--color-success-soft);
+  border: 1px solid rgba(47, 158, 68, 0.3);
+  color: var(--color-success);
 }
 
 .alert-error {
-  background-color: #fff5f5;
-  color: #c92a2a;
-  border: 1px solid #ffc9c9;
+  background-color: var(--color-danger-soft);
+  border: 1px solid rgba(224, 49, 49, 0.3);
+  color: var(--color-danger);
 }
 
-.auth-form {
-  margin-top: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-heading);
-}
-
-.required-mark {
-  color: #e03131;
-  margin-left: 2px;
-}
-
-.input-wrapper {
+/* Input icons */
+.input-icon-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-wrapper input {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: white;
-  font-family: inherit;
-  font-size: 1rem;
-  color: var(--color-heading);
-  transition: border-color 0.2s, box-shadow 0.2s;
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-text-light);
+  pointer-events: none;
 }
 
-.input-wrapper input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
-}
-
-.form-group.has-error input {
-  border-color: #fa5252;
-  background-color: #fff9f9;
-}
-
-.form-group.has-error input:focus {
-  box-shadow: 0 0 0 3px rgba(250, 82, 82, 0.15);
-}
-
-.field-error-msg {
-  color: #c92a2a;
-  font-size: 0.85rem;
-  margin-top: 0.35rem;
-  font-weight: 500;
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-.btn-block {
-  width: 100%;
+.with-icon {
+  padding-left: 2.6rem !important;
 }
 
 .btn-submit {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 1rem;
 }
 
 .auth-footer {
-  margin-top: 1.75rem;
-  font-size: 0.95rem;
-  color: #5a736e;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
 }
 
 .auth-link {
+  font-weight: 600;
   color: var(--color-accent);
-  font-weight: 700;
-  text-decoration: underline;
 }
 
 .auth-link:hover {
-  opacity: 0.8;
-}
-
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem 1rem;
-    margin: 1.25rem auto;
-  }
-
-  .auth-header h1 {
-    font-size: 1.5rem;
-  }
-
-  .alert {
-    padding: 0.75rem 0.85rem;
-  }
+  text-decoration: underline;
 }
 </style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -7,17 +7,16 @@ import { useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const claimStore = useClaimStore()
 const authStore = useAuthStore()
+const toast = useToast()
 const listId = route.params.listId as string
 
-// Stays true until we are sure the visitor is NOT the list owner, so claim
-// data is never rendered - even for a split second - to the person who
-// should be surprised by the gifts.
 const isCheckingOwnership = ref(true)
 const loadError = ref(false)
 const isGuideExpanded = ref(false)
@@ -42,9 +41,6 @@ onMounted(async () => {
     isCheckingOwnership.value = false
   } catch (err: unknown) {
     if (axios.isAxiosError(err) && err.response?.status === 403) {
-      // The public endpoint returned 403 Forbidden because the current authenticated user
-      // is the owner of this list. Redirect immediately to the management view so they do not
-      // see claims or spoil the surprise.
       await router.replace({ name: 'list-manage', params: { listId }, query: { fromPublic: '1' } })
       return
     }
@@ -58,6 +54,18 @@ useEscapeKey(() => {
   else if (showUnclaimModal.value && !isUnclaiming.value) showUnclaimModal.value = false
 })
 
+const ownerInitials = computed(() => {
+  const name = claimStore.currentPublicList?.ownerDisplayName || ''
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  const first = parts[0]
+  const second = parts[1]
+  if (first && second && first.length > 0 && second.length > 0) {
+    return (first[0]! + second[0]!).toUpperCase()
+  }
+  return name.slice(0, 2).toUpperCase()
+})
+
 function openClaim(item: PublicItem) {
   selectedItem.value = item
   claimForm.value = {
@@ -66,6 +74,25 @@ function openClaim(item: PublicItem) {
   }
   error.value = ''
   showClaimModal.value = true
+}
+
+function maxClaimable(item: PublicItem) {
+  if (item.type !== 1) return 1
+  return Math.max(1, Number(item.targetQuantity || 1) - Number(item.totalClaimed || 0))
+}
+
+function incrementClaimQuantity() {
+  if (!selectedItem.value) return
+  const max = maxClaimable(selectedItem.value)
+  if (claimForm.value.quantityClaimed < max) {
+    claimForm.value.quantityClaimed++
+  }
+}
+
+function decrementClaimQuantity() {
+  if (claimForm.value.quantityClaimed > 1) {
+    claimForm.value.quantityClaimed--
+  }
 }
 
 async function handleClaim() {
@@ -78,6 +105,7 @@ async function handleClaim() {
       claimantName: claimForm.value.claimantName.trim() || null,
       quantityClaimed: claimForm.value.quantityClaimed
     })
+    toast.success(t('common.toasts.claimed'))
     showClaimModal.value = false
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('listPublic.claimModal.failed'))
@@ -100,6 +128,7 @@ async function confirmUnclaim() {
   isUnclaiming.value = true
   try {
     await claimStore.unclaimItem(listId, itemToUnclaim.value.id)
+    toast.success(t('common.toasts.unclaimed'))
     showUnclaimModal.value = false
     itemToUnclaim.value = null
   } catch (err: unknown) {
@@ -121,24 +150,39 @@ function getProgress(item: PublicItem) {
   const target = Number(item.targetQuantity)
   return Math.min(100, Math.max(0, (claimed / target) * 100))
 }
+
+function extractUrl(text: string | null): string | null {
+  if (!text) return null
+  const match = text.match(/(https?:\/\/[^\s]+)/i)
+  return match ? match[0] : null
+}
 </script>
 
 <template>
-  <div class="container mt-2">
+  <div class="container list-public-container mt-2">
     <div v-if="claimStore.currentPublicList && !isCheckingOwnership">
+      <!-- Public Hero Card -->
       <header class="public-header text-center">
         <div class="card header-card">
-          <p class="owner-info">
-            <span class="owner-prefix">{{ t('listPublic.ownerPrefix') }}</span>
-            <span class="owner-name">{{ claimStore.currentPublicList.ownerDisplayName || t('listPublic.anonymousOwner') }}</span>
-          </p>
-          <h1 class="list-title">{{ claimStore.currentPublicList.name }}</h1>
+          <!-- Owner badge / avatar -->
+          <div class="owner-pill-badge">
+            <div class="owner-avatar-circle">
+              {{ ownerInitials }}
+            </div>
+            <div class="owner-text-wrap">
+              <span class="owner-prefix">{{ t('listPublic.ownerPrefix') }}</span>
+              <strong class="owner-name">{{ claimStore.currentPublicList.ownerDisplayName || t('listPublic.anonymousOwner') }}</strong>
+            </div>
+          </div>
+
+          <h1 class="list-title mt-1">{{ claimStore.currentPublicList.name }}</h1>
           
-          <p v-if="claimStore.currentPublicList.description" class="list-description">
+          <p v-if="claimStore.currentPublicList.description" class="list-description mt-1">
             {{ claimStore.currentPublicList.description }}
           </p>
 
-          <div class="hero-guide" :class="{ 'is-expanded': isGuideExpanded }">
+          <!-- Collapsible Guide Accordion -->
+          <div class="hero-guide mt-2" :class="{ 'is-expanded': isGuideExpanded }">
             <button 
               type="button" 
               class="guide-header-btn" 
@@ -147,52 +191,90 @@ function getProgress(item: PublicItem) {
               aria-controls="hero-guide-content"
             >
               <div class="guide-header-left">
-                <span class="guide-icon">🎁</span>
+                <span class="guide-icon">💡</span>
                 <span class="guide-title">{{ t('listPublic.guideTitle') }}</span>
               </div>
               <span class="guide-chevron" :class="{ 'is-rotated': isGuideExpanded }" aria-hidden="true">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="m6 9 6 6 6-6"/>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 12 15 18 9"></polyline>
                 </svg>
               </span>
             </button>
-            <div v-show="isGuideExpanded" id="hero-guide-content" class="guide-body">
-              <p class="guide-lead">
-                {{ t('listPublic.guideLead') }}
-              </p>
-              <p class="guide-how-it-works">
-                {{ t('listPublic.guideHowItWorks') }}
-              </p>
-              <div class="guide-steps">
-                <div class="guide-step">
-                  <span class="step-num">1</span>
-                  <span>{{ t('listPublic.guideStep1') }}</span>
-                </div>
-                <div class="guide-step">
-                  <span class="step-num">2</span>
-                  <span>{{ t('listPublic.guideStep2') }}</span>
-                </div>
-                <div class="guide-step">
-                  <span class="step-num">3</span>
-                  <span>{{ t('listPublic.guideStep3') }}</span>
+            
+            <Transition name="accordion">
+              <div v-show="isGuideExpanded" id="hero-guide-content" class="guide-body">
+                <p class="guide-lead">
+                  {{ t('listPublic.guideLead') }}
+                </p>
+                <p class="guide-how-it-works mt-1">
+                  {{ t('listPublic.guideHowItWorks') }}
+                </p>
+                <div class="guide-steps mt-1">
+                  <div class="guide-step">
+                    <span class="step-num">1</span>
+                    <span>{{ t('listPublic.guideStep1') }}</span>
+                  </div>
+                  <div class="guide-step">
+                    <span class="step-num">2</span>
+                    <span>{{ t('listPublic.guideStep2') }}</span>
+                  </div>
+                  <div class="guide-step">
+                    <span class="step-num">3</span>
+                    <span>{{ t('listPublic.guideStep3') }}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </Transition>
           </div>
         </div>
       </header>
 
-      <div v-if="claimStore.currentPublicList.items.length === 0" class="empty-state text-center">
-        <p>{{ t('listPublic.empty') }}</p>
+      <!-- Empty State -->
+      <div v-if="claimStore.currentPublicList.items.length === 0" class="empty-state card text-center mt-2">
+        <span class="empty-emoji">🎁</span>
+        <h3 class="mt-1">{{ t('listPublic.empty') }}</h3>
       </div>
 
+      <!-- Items Grid -->
       <div v-else class="items-grid mt-2">
-        <div v-for="item in claimStore.currentPublicList.items" :key="item.id" class="card item-card">
+        <div
+          v-for="item in claimStore.currentPublicList.items"
+          :key="item.id"
+          class="card item-card"
+          :class="{
+            'is-claimed-by-me': isClaimedByMe(item.id),
+            'is-fully-claimed': item.type !== 2 && Number(item.totalClaimed) >= Number(item.targetQuantity)
+          }"
+        >
           <div class="item-body">
             <div class="item-info">
-              <h3>{{ item.name }}</h3>
-              <p v-if="item.description" class="item-description">{{ item.description }}</p>
+              <div class="item-title-row">
+                <h3 class="item-title">{{ item.name }}</h3>
+                <span v-if="isClaimedByMe(item.id)" class="claimed-badge">
+                  ⭐ {{ t('listPublic.yourChoice') }}
+                </span>
+              </div>
+
+              <p v-if="item.description" class="item-description mt-1">{{ item.description }}</p>
               
+              <!-- Store link button if URL detected -->
+              <div v-if="extractUrl(item.description)" class="item-url-wrap mt-1">
+                <a
+                  :href="extractUrl(item.description)!"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm btn-outline btn-store-link"
+                >
+                  <span>{{ t('listPublic.openLink') }}</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                    <polyline points="15 3 21 3 21 9"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </a>
+              </div>
+
+              <!-- Quantity Progress Indicator -->
               <div class="item-status mt-1">
                 <template v-if="item.type !== 2">
                   <div class="progress-container">
@@ -203,35 +285,52 @@ function getProgress(item: PublicItem) {
                   </p>
                 </template>
                 <template v-else>
-                  <p class="status-text">{{ t('listPublic.claimedProgressUnlimited', { claimed: item.totalClaimed }) }}</p>
+                  <div class="unlimited-badge">
+                    <span>♾️</span>
+                    <span class="status-text">{{ t('listPublic.claimedProgressUnlimited', { claimed: item.totalClaimed }) }}</span>
+                  </div>
                 </template>
               </div>
 
-              <div v-if="item.claims && item.claims.length > 0" class="claims-list">
+              <!-- Claimants avatars & names list -->
+              <div v-if="item.claims && item.claims.length > 0" class="claims-list mt-1">
                 <p class="claims-label">{{ t('listPublic.whoClaimed') }}</p>
-                <ul>
-                  <li v-for="(claim, claimIndex) in item.claims" :key="claimIndex">
-                    {{ claim.claimantName || t('listPublic.anonymousClaimant') }}
+                <div class="claimants-pills">
+                  <span v-for="(claim, claimIndex) in item.claims" :key="claimIndex" class="claimant-pill">
+                    <span class="claimant-avatar-circle">
+                      {{ (claim.claimantName || '?').slice(0, 1).toUpperCase() }}
+                    </span>
+                    <span class="claimant-name">{{ claim.claimantName || t('listPublic.anonymousClaimant') }}</span>
                     <span v-if="item.type !== 0" class="claim-qty">&times;{{ claim.quantityClaimed }}</span>
-                  </li>
-                </ul>
+                  </span>
+                </div>
               </div>
             </div>
 
+            <!-- Item Action buttons -->
             <div class="item-actions">
-              <div v-if="isClaimedByMe(item.id)" class="my-claim">
-                <span class="badge">{{ t('listPublic.yourChoice') }}</span>
-                <button @click="openUnclaimModal(item)" class="btn btn-sm btn-outline">{{ t('listPublic.unclaim') }}</button>
+              <div v-if="isClaimedByMe(item.id)" class="my-claim-action">
+                <button @click="openUnclaimModal(item)" class="btn btn-sm btn-outline btn-unclaim">
+                  {{ t('listPublic.unclaim') }}
+                </button>
               </div>
               <button 
                 v-else-if="item.type === 2 || Number(item.totalClaimed) < Number(item.targetQuantity)" 
                 @click="openClaim(item)" 
-                class="btn btn-block"
+                class="btn btn-block btn-claim"
               >
-                {{ t('listPublic.selectGift') }}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="20 12 20 22 4 22 4 12"></polyline>
+                  <rect x="2" y="7" width="20" height="5"></rect>
+                  <line x1="12" y1="22" x2="12" y2="7"></line>
+                  <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path>
+                  <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path>
+                </svg>
+                <span>{{ t('listPublic.selectGift') }}</span>
               </button>
               <div v-else class="fully-claimed">
-                <span class="check-icon">✓</span> {{ t('listPublic.fullyClaimed') }}
+                <span class="check-icon">✓</span>
+                <span>{{ t('listPublic.fullyClaimed') }}</span>
               </div>
             </div>
           </div>
@@ -240,144 +339,218 @@ function getProgress(item: PublicItem) {
 
       <!-- Claim Modal -->
       <Teleport to="body">
-        <div v-if="showClaimModal && selectedItem" class="modal-overlay" @click="!isSubmittingClaim && (showClaimModal = false)">
-          <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
-            <div class="modal-header">
-              <h2 id="claim-modal-title">{{ t('listPublic.claimModal.title', { name: selectedItem.name }) }}</h2>
-              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
+        <Transition name="modal-fade">
+          <div v-if="showClaimModal && selectedItem" class="modal-overlay" @click="!isSubmittingClaim && (showClaimModal = false)">
+            <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="claim-modal-title">
+              <div class="modal-header">
+                <div class="modal-title-wrap">
+                  <span class="modal-title-icon">🎁</span>
+                  <h2 id="claim-modal-title">{{ t('listPublic.claimModal.title', { name: selectedItem.name }) }}</h2>
+                </div>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
+              </div>
+
+              <div v-if="error" class="alert alert-error mt-1" role="alert">
+                <span class="alert-desc">{{ error }}</span>
+              </div>
+
+              <form @submit.prevent="handleClaim" class="mt-2" novalidate>
+                <div class="form-group">
+                  <label for="claimant-name">{{ t('listPublic.claimModal.nameLabel') }}</label>
+                  <input
+                    id="claimant-name"
+                    v-model="claimForm.claimantName"
+                    :placeholder="t('listPublic.claimModal.namePlaceholder')"
+                    :disabled="isSubmittingClaim"
+                  />
+                </div>
+
+                <!-- Stepper for Quantity Type Items -->
+                <div v-if="selectedItem.type === 1" class="form-group mt-1">
+                  <label for="claim-quantity">{{ t('listPublic.claimModal.quantityLabel') }}</label>
+                  <div class="stepper-box">
+                    <button
+                      type="button"
+                      class="stepper-btn"
+                      @click="decrementClaimQuantity"
+                      :disabled="isSubmittingClaim || claimForm.quantityClaimed <= 1"
+                    >
+                      -
+                    </button>
+                    <input 
+                      id="claim-quantity"
+                      v-model.number="claimForm.quantityClaimed" 
+                      type="number" 
+                      min="1" 
+                      :max="maxClaimable(selectedItem)" 
+                      required 
+                      class="stepper-input"
+                      :disabled="isSubmittingClaim"
+                    />
+                    <button
+                      type="button"
+                      class="stepper-btn"
+                      @click="incrementClaimQuantity"
+                      :disabled="isSubmittingClaim || claimForm.quantityClaimed >= maxClaimable(selectedItem)"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div class="modal-actions">
+                  <button type="button" @click="showClaimModal = false" class="btn btn-outline" :disabled="isSubmittingClaim">
+                    {{ t('common.actions.cancel') }}
+                  </button>
+                  <button type="submit" class="btn btn-claim-submit" :disabled="isSubmittingClaim">
+                    <span v-if="isSubmittingClaim" class="spinner spinner-sm" aria-hidden="true"></span>
+                    <span>{{ isSubmittingClaim ? t('listPublic.claimModal.submitting') : t('listPublic.claimModal.submit') }}</span>
+                  </button>
+                </div>
+              </form>
             </div>
-            <form @submit.prevent="handleClaim" class="mt-1">
-              <div class="form-group">
-                <label>{{ t('listPublic.claimModal.nameLabel') }}</label>
-                <input v-model="claimForm.claimantName" :placeholder="t('listPublic.claimModal.namePlaceholder')" :disabled="isSubmittingClaim" />
-              </div>
-              <div v-if="selectedItem.type === 1" class="form-group">
-                <label>{{ t('listPublic.claimModal.quantityLabel') }}</label>
-                <input 
-                  v-model="claimForm.quantityClaimed" 
-                  type="number" 
-                  min="1" 
-                  :max="Number(selectedItem.targetQuantity) - Number(selectedItem.totalClaimed)" 
-                  required 
-                  :disabled="isSubmittingClaim"
-                />
-              </div>
-              <div v-if="error" class="error-message text-center mb-1">{{ error }}</div>
-              <div class="modal-actions">
-                <button type="button" @click="showClaimModal = false" class="btn btn-outline" :disabled="isSubmittingClaim">{{ t('common.actions.cancel') }}</button>
-                <button type="submit" class="btn" :disabled="isSubmittingClaim">
-                  {{ isSubmittingClaim ? t('listPublic.claimModal.submitting') : t('listPublic.claimModal.submit') }}
-                </button>
-              </div>
-            </form>
           </div>
-        </div>
+        </Transition>
       </Teleport>
 
       <!-- Unclaim Confirmation Modal -->
       <Teleport to="body">
-        <div v-if="showUnclaimModal && itemToUnclaim" class="modal-overlay" @click="!isUnclaiming && (showUnclaimModal = false)">
-          <div class="modal card" @click.stop role="dialog" aria-modal="true" aria-labelledby="unclaim-title">
-            <div class="modal-header">
-              <h2 id="unclaim-title">{{ t('listPublic.unclaimModal.title') }}</h2>
-              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isUnclaiming" @click="showUnclaimModal = false">&times;</button>
-            </div>
+        <Transition name="modal-fade">
+          <div v-if="showUnclaimModal && itemToUnclaim" class="modal-overlay" @click="!isUnclaiming && (showUnclaimModal = false)">
+            <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="unclaim-title">
+              <div class="modal-header">
+                <div class="modal-title-wrap">
+                  <span class="modal-title-icon">⚠️</span>
+                  <h2 id="unclaim-title">{{ t('listPublic.unclaimModal.title') }}</h2>
+                </div>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isUnclaiming" @click="showUnclaimModal = false">&times;</button>
+              </div>
 
-            <div v-if="unclaimError" class="error-message mt-1">{{ unclaimError }}</div>
+              <div v-if="unclaimError" class="alert alert-error mt-1" role="alert">
+                <span class="alert-desc">{{ unclaimError }}</span>
+              </div>
 
-            <div class="confirm-content mt-1">
-              <p>
-                <i18n-t keypath="listPublic.unclaimModal.confirmMessage" tag="span">
-                  <template #name>
-                    <strong>«{{ itemToUnclaim.name }}»</strong>
-                  </template>
-                </i18n-t>
-              </p>
-            </div>
+              <div class="confirm-content mt-1">
+                <p class="confirm-message">
+                  <i18n-t keypath="listPublic.unclaimModal.confirmMessage" tag="span" scope="global">
+                    <template #name>
+                      <strong>«{{ itemToUnclaim.name }}»</strong>
+                    </template>
+                  </i18n-t>
+                </p>
+              </div>
 
-            <div class="modal-actions">
-              <button type="button" @click="showUnclaimModal = false" class="btn btn-outline" :disabled="isUnclaiming">
-                {{ t('common.actions.back') }}
-              </button>
-              <button type="button" @click="confirmUnclaim" class="btn btn-danger-solid" :disabled="isUnclaiming">
-                {{ isUnclaiming ? t('listPublic.unclaimModal.submitting') : t('listPublic.unclaimModal.submit') }}
-              </button>
+              <div class="modal-actions">
+                <button type="button" @click="showUnclaimModal = false" class="btn btn-outline" :disabled="isUnclaiming">
+                  {{ t('common.actions.back') }}
+                </button>
+                <button type="button" @click="confirmUnclaim" class="btn btn-danger-solid" :disabled="isUnclaiming">
+                  <span v-if="isUnclaiming" class="spinner spinner-sm" aria-hidden="true"></span>
+                  <span>{{ isUnclaiming ? t('listPublic.unclaimModal.submitting') : t('listPublic.unclaimModal.submit') }}</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </Teleport>
     </div>
-    <div v-else-if="loadError" class="text-center mt-2">
-      <p>{{ t('listPublic.notFound') }}</p>
+
+    <!-- Error State -->
+    <div v-else-if="loadError" class="text-center card mt-2 not-found-card">
+      <span class="not-found-emoji">🔍</span>
+      <h2 class="mt-1">{{ t('listPublic.notFound') }}</h2>
+      <RouterLink :to="{ name: 'home' }" class="btn btn-outline mt-2">
+        {{ t('common.actions.back') }}
+      </RouterLink>
     </div>
+
+    <!-- Loading State -->
     <div v-else class="loading-state card text-center mt-2" aria-live="polite" aria-busy="true">
-      <span class="spinner spinner-lg" aria-hidden="true"></span>
+      <span class="spinner spinner-lg spinner-accent" aria-hidden="true"></span>
       <p class="loading-text">{{ t('listPublic.loading') }}</p>
     </div>
   </div>
 </template>
 
 <style scoped>
-.header-card {
-  padding: 3rem 1.5rem;
-  margin-bottom: 2.5rem;
+.list-public-container {
+  padding-bottom: 3.5rem;
 }
 
-.owner-info {
+/* Public Header Card */
+.header-card {
+  padding: 2.5rem 2rem;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 242, 235, 0.95) 100%);
+  border: 1px solid var(--color-border);
+}
+
+.owner-pill-badge {
   display: inline-flex;
   align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 1rem 0.35rem 0.45rem;
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-xs);
+}
+
+.owner-avatar-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 0.75rem;
-  font-size: 0.95rem;
+}
+
+.owner-text-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.9rem;
 }
 
 .owner-prefix {
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  color: var(--color-accent);
-  font-weight: 600;
-  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }
 
 .owner-name {
   color: var(--color-heading);
-  font-weight: 700;
-  font-size: 1rem;
 }
 
 .list-title {
-  font-size: 2.75rem;
-  line-height: 1.2;
-  margin-bottom: 0.75rem;
+  font-size: 2.1rem;
   color: var(--color-heading);
-  overflow-wrap: break-word;
-  word-break: break-word;
 }
 
 .list-description {
   max-width: 600px;
-  margin: 0 auto;
-  font-size: 1.1rem;
-  color: #666;
-  overflow-wrap: break-word;
-  word-break: break-word;
+  margin-left: auto;
+  margin-right: auto;
+  font-size: 1.05rem;
+  color: var(--color-text);
+  line-height: 1.5;
 }
 
+/* Guide Accordion */
 .hero-guide {
-  max-width: 620px;
-  margin: 1.5rem auto 0;
-  background: var(--color-accent-soft);
+  margin-top: 1.5rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  text-align: left;
+  border-radius: var(--radius-lg);
+  background: var(--color-background-elevated);
   overflow: hidden;
-  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+  transition: all var(--transition-normal);
 }
 
-.hero-guide:hover {
-  border-color: var(--color-border-hover);
+.hero-guide.is-expanded {
+  border-color: var(--color-accent-soft);
+  box-shadow: var(--shadow-sm);
 }
 
 .guide-header-btn {
@@ -385,50 +558,38 @@ function getProgress(item: PublicItem) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 1.25rem;
-  background: transparent;
+  padding: 0.85rem 1.25rem;
+  background: none;
   border: none;
-  font-family: inherit;
   cursor: pointer;
-  text-align: left;
   color: var(--color-heading);
-  transition: background-color 0.15s;
+  transition: background var(--transition-fast);
 }
 
 .guide-header-btn:hover {
-  background-color: rgba(79, 109, 104, 0.08);
-}
-
-.guide-header-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
+  background: var(--color-accent-soft);
 }
 
 .guide-header-left {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .guide-icon {
-  font-size: 1.2rem;
-  line-height: 1;
+  font-size: 1.25rem;
 }
 
 .guide-title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--color-heading);
-  margin: 0;
+  font-weight: 700;
+  font-size: 0.98rem;
 }
 
 .guide-chevron {
+  color: var(--color-text-light);
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--color-accent);
-  transition: transform 0.25s ease;
+  transition: transform var(--transition-normal);
 }
 
 .guide-chevron.is-rotated {
@@ -436,140 +597,226 @@ function getProgress(item: PublicItem) {
 }
 
 .guide-body {
-  padding: 0 1.25rem 1.25rem 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  border-top: 1px solid rgba(79, 109, 104, 0.12);
-  padding-top: 0.85rem;
+  padding: 1.25rem;
+  text-align: left;
+  border-top: 1px solid var(--color-border);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: var(--color-text);
 }
 
 .guide-lead {
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--color-heading);
+  font-weight: 500;
 }
 
 .guide-how-it-works {
-  font-size: 0.9rem;
-  line-height: 1.55;
-  color: var(--color-text);
-  padding-top: 0.6rem;
-  border-top: 1px dashed var(--color-border);
+  color: var(--color-text-muted);
 }
 
 .guide-steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
 }
 
 .guide-step {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 0.4rem;
-  background: white;
+  gap: 0.5rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--color-background-elevated);
   border: 1px solid var(--color-border);
-  border-radius: 20px;
-  padding: 0.25rem 0.65rem;
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: var(--color-heading);
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .step-num {
-  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent);
+  color: #ffffff;
+  display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
-  background: var(--color-accent);
-  color: white;
-  border-radius: 50%;
   font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1;
+  flex-shrink: 0;
 }
 
+/* Accordion transition */
+.accordion-enter-active,
+.accordion-leave-active {
+  transition: all 0.25s ease-out;
+  overflow: hidden;
+}
+
+.accordion-enter-from,
+.accordion-leave-to {
+  opacity: 0;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* Items Grid & Cards */
 .items-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
 }
 
 .item-card {
-  height: 100%;
+  padding: 1.5rem;
   margin-bottom: 0;
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background: var(--color-background-elevated);
+  transition: all var(--transition-normal);
 }
 
-.empty-state {
-  color: #888;
-  padding: 2rem;
+.item-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border-hover);
+}
+
+.item-card.is-claimed-by-me {
+  border: 2px solid var(--color-accent);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1) 0%, rgba(59, 119, 108, 0.04) 100%);
+  box-shadow: 0 4px 18px var(--color-accent-glow);
+}
+
+.item-card.is-fully-claimed:not(.is-claimed-by-me) {
+  opacity: 0.75;
+  background: var(--color-background-soft);
 }
 
 .item-body {
-  flex: 1;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
 }
 
-.item-info h3 {
-  font-size: 1.2rem;
-  margin-bottom: 0.35rem;
-  overflow-wrap: break-word;
-  word-break: break-word;
+.item-info {
+  flex: 1;
+  min-width: 260px;
+}
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.item-title {
+  font-size: 1.25rem;
+  color: var(--color-heading);
+  margin: 0;
+}
+
+.claimed-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 
 .item-description {
-  color: #666;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
-  display: -webkit-box;
-  line-clamp: 2;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  font-size: 0.94rem;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+}
+
+.btn-store-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  border-radius: var(--radius-full);
+}
+
+/* Progress bar */
+.progress-container {
+  width: 100%;
+  max-width: 280px;
+  height: 8px;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
   overflow: hidden;
-  overflow-wrap: break-word;
-  word-break: break-word;
-}
-
-.claims-list {
-  margin-top: 0.75rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--color-border);
-}
-
-.claims-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: #999;
   margin-bottom: 0.35rem;
 }
 
-.claims-list ul {
-  list-style: none;
+.progress-bar {
+  height: 100%;
+  background: var(--color-accent-gradient);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.status-text {
+  font-size: 0.86rem;
+  color: var(--color-text-muted);
+  font-weight: 600;
+}
+
+.unlimited-badge {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
   gap: 0.4rem;
 }
 
-.claims-list li {
+/* Claimants */
+.claims-list {
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border);
+}
+
+.claims-label {
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+}
+
+.claimants-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.claimant-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.55rem 0.15rem 0.25rem;
+  background: var(--color-background-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
   font-size: 0.8rem;
   color: var(--color-text);
+}
+
+.claimant-avatar-circle {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
   background: var(--color-accent-soft);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  overflow-wrap: break-word;
-  word-break: break-word;
-  max-width: 100%;
+  color: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
 }
 
 .claim-qty {
@@ -577,77 +824,121 @@ function getProgress(item: PublicItem) {
   color: var(--color-accent);
 }
 
-.progress-container {
-  height: 8px;
-  background: #eee;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 0.5rem;
-}
-
-.progress-bar {
-  height: 100%;
-  background: var(--color-accent);
-  transition: width 0.5s ease-out;
-}
-
-.status-text {
-  font-size: 0.85rem;
-  color: #888;
-  font-weight: 600;
-}
-
+/* Action buttons */
 .item-actions {
-  margin-top: 1.5rem;
-}
-
-.btn-block {
-  width: 100%;
-}
-
-.my-claim {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
+  min-width: 160px;
+  justify-content: flex-end;
+}
+
+.btn-claim {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 14px var(--color-accent-glow);
+}
+
+.my-claim-action {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
 }
 
-.badge {
-  background: var(--color-accent);
-  color: white;
-  padding: 0.3rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 700;
+.btn-unclaim {
+  color: var(--color-danger);
+  border-color: rgba(224, 49, 49, 0.3);
+}
+
+.btn-unclaim:hover {
+  background: var(--color-danger-soft);
+  border-color: var(--color-danger);
 }
 
 .fully-claimed {
-  text-align: center;
-  color: #999;
-  font-weight: 700;
-  padding: 0.5rem;
-  background: #f9f9f9;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.25rem;
   border-radius: var(--radius-md);
+  background: var(--color-background-soft);
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.92rem;
+  border: 1px solid var(--color-border);
 }
 
 .check-icon {
+  font-weight: 900;
+  color: var(--color-success);
+}
+
+/* Stepper */
+.stepper-box {
+  display: flex;
+  align-items: center;
+  max-width: 160px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-background-elevated);
+}
+
+.stepper-btn {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  font-weight: 600;
+  width: 44px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.stepper-btn:hover:not(:disabled) {
+  background: var(--color-accent-soft);
   color: var(--color-accent);
 }
 
-/* Modal from Dashboard */
+.stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.stepper-input {
+  flex: 1;
+  border: none;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-heading);
+  padding: 0;
+  -moz-appearance: textfield;
+}
+
+.stepper-input::-webkit-outer-spin-button,
+.stepper-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Modals */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(30, 45, 61, 0.45);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  backdrop-filter: blur(4px);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   padding: 1rem;
 }
 
@@ -663,128 +954,106 @@ function getProgress(item: PublicItem) {
   align-items: center;
 }
 
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modal-title-icon {
+  font-size: 1.4rem;
+}
+
 .close-btn {
   background: none;
   border: none;
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1;
-  color: #999;
+  color: var(--color-text-light);
   cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.close-btn:hover {
+  color: var(--color-heading);
+}
+
+.confirm-message {
+  font-size: 1.05rem;
+  color: var(--color-heading);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.confirm-content {
-  font-size: 1.05rem;
-  line-height: 1.5;
-  color: var(--color-heading);
+  gap: 0.75rem;
+  margin-top: 1.75rem;
 }
 
 .btn-danger-solid {
-  background-color: #d63031;
-  color: white;
-  border: 1px solid #d63031;
+  background: var(--color-danger);
+  color: #ffffff;
 }
 
 .btn-danger-solid:hover:not(:disabled) {
-  background-color: #c02626;
-  border-color: #c02626;
-  opacity: 1;
-  transform: translateY(-1px);
+  background: var(--color-danger-hover);
+  box-shadow: 0 4px 14px rgba(224, 49, 49, 0.35);
 }
 
-.btn-danger-solid:disabled {
-  background-color: #feb2b2;
-  border-color: #feb2b2;
-  cursor: not-allowed;
-  transform: none;
+/* Modal animation */
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-@media (max-width: 480px) {
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .modal,
+.modal-fade-leave-to .modal {
+  transform: scale(0.95) translateY(10px);
+}
+
+.not-found-card {
+  padding: 3.5rem 2rem;
+}
+
+.not-found-emoji {
+  font-size: 3.5rem;
+}
+
+@media (max-width: 650px) {
   .header-card {
-    padding: 1.75rem 1rem;
-    margin-bottom: 1.5rem;
+    padding: 1.75rem 1.25rem;
   }
-  
+
   .list-title {
-    font-size: 1.85rem;
-  }
-
-  .owner-info {
-    font-size: 0.85rem;
-    margin-bottom: 0.5rem;
-  }
-
-  .owner-name {
-    font-size: 0.9rem;
-  }
-
-  .hero-guide {
-    margin-top: 1.25rem;
-  }
-
-  .guide-header-btn {
-    padding: 0.65rem 0.85rem;
-  }
-
-  .guide-title {
-    font-size: 0.95rem;
-  }
-
-  .guide-body {
-    padding: 0 0.85rem 0.85rem 0.85rem;
-    padding-top: 0.75rem;
-  }
-
-  .guide-lead {
-    font-size: 0.9rem;
-  }
-
-  .guide-how-it-works {
-    font-size: 0.85rem;
+    font-size: 1.65rem;
   }
 
   .guide-steps {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .guide-step {
-    width: 100%;
-    box-sizing: border-box;
-  }
-  
-  .items-grid {
     grid-template-columns: 1fr;
-    gap: 1rem;
   }
 
-  .my-claim {
+  .item-body {
     flex-direction: column;
     align-items: stretch;
-    text-align: center;
   }
 
-  .my-claim .badge {
-    text-align: center;
-  }
-
-  .my-claim .btn {
+  .item-actions {
     width: 100%;
+    margin-top: 0.75rem;
   }
 
-  .modal-actions {
-    flex-direction: column-reverse;
-    gap: 0.5rem;
-  }
-
-  .modal-actions .btn {
+  .btn-claim,
+  .fully-claimed,
+  .my-claim-action {
     width: 100%;
+    justify-content: center;
   }
 }
 </style>

@@ -105,25 +105,44 @@ function goToLogin() {
 </script>
 
 <template>
-  <div class="container">
-    <div class="auth-card card">
+  <div class="container container-narrow">
+    <div class="auth-card card card-elevated">
       <div class="auth-header text-center">
-        <h1>{{ t('auth.resetPassword.title') }}</h1>
+        <div class="auth-icon-badge">
+          <span>🔒</span>
+        </div>
+        <h1 class="mt-1">{{ t('auth.resetPassword.title') }}</h1>
         <p class="auth-subtitle">{{ t('auth.resetPassword.subtitle') }}</p>
       </div>
 
-      <div v-if="linkInvalid" class="alert alert-error mt-2" role="alert">
+      <!-- Invalid link banner -->
+      <div
+        v-if="linkInvalid"
+        class="alert alert-error mt-2"
+        role="alert"
+        aria-live="assertive"
+      >
         <div class="alert-body">
           <span class="alert-desc">{{ t('auth.resetPassword.invalidLink') }}</span>
         </div>
       </div>
 
+      <!-- Success state -->
       <div
         v-else-if="isSubmitted"
         class="alert alert-success mt-2"
         role="status"
         aria-live="polite"
       >
+        <div class="alert-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path
+              fill-rule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
         <div class="alert-body">
           <span class="alert-title">{{ t('auth.resetPassword.successTitle') }}</span>
           <span class="alert-desc">{{ t('auth.resetPassword.successDesc') }}</span>
@@ -131,6 +150,7 @@ function goToLogin() {
       </div>
 
       <template v-else>
+        <!-- Error alert banner -->
         <div
           v-if="generalError"
           class="alert alert-error mt-1"
@@ -140,25 +160,39 @@ function goToLogin() {
           <div class="alert-body">
             <span class="alert-desc">{{ generalError }}</span>
           </div>
+          <button
+            type="button"
+            class="alert-close"
+            :aria-label="t('common.actions.closeError')"
+            @click="generalError = ''"
+          >
+            &times;
+          </button>
         </div>
 
         <form @submit.prevent="handleSubmit" class="auth-form mt-2" novalidate>
+          <!-- New Password field -->
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.password }">
-            <label for="reset-password-new">
+            <label for="reset-new-password">
               {{ t('auth.resetPassword.newPassword') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
-            <div class="input-wrapper password-wrapper">
+            <div class="input-icon-wrapper password-wrapper">
+              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
               <input
-                id="reset-password-new"
+                id="reset-new-password"
                 v-model="newPassword"
                 :type="showPassword ? 'text' : 'password'"
                 name="newPassword"
                 autocomplete="new-password"
                 :placeholder="t('auth.resetPassword.passwordPlaceholder')"
                 required
+                class="with-icon"
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.password"
-                :aria-describedby="fieldErrors.password ? 'reset-password-new-error' : undefined"
+                :aria-describedby="fieldErrors.password ? 'reset-password-error' : undefined"
                 @input="clearFieldError('password')"
               />
               <button
@@ -170,7 +204,6 @@ function goToLogin() {
                 :disabled="isSubmitting"
                 @click="showPassword = !showPassword"
               >
-                <!-- Eye icon (Show) -->
                 <svg
                   v-if="!showPassword"
                   xmlns="http://www.w3.org/2000/svg"
@@ -180,14 +213,13 @@ function goToLogin() {
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   aria-hidden="true"
                 >
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                <!-- Eye-off icon (Hide) -->
                 <svg
                   v-else
                   xmlns="http://www.w3.org/2000/svg"
@@ -197,8 +229,8 @@ function goToLogin() {
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   aria-hidden="true"
                 >
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
@@ -208,7 +240,7 @@ function goToLogin() {
             </div>
             <p
               v-if="fieldErrors.password"
-              id="reset-password-new-error"
+              id="reset-password-error"
               class="field-error-msg"
               role="alert"
             >
@@ -216,22 +248,28 @@ function goToLogin() {
             </p>
           </div>
 
+          <!-- Confirm Password field -->
           <div class="form-group" :class="{ 'has-error': !!fieldErrors.confirmPassword }">
-            <label for="reset-password-confirm">
-              {{ t('common.labels.confirmPassword') }} <span class="required-mark" aria-hidden="true">*</span>
+            <label for="reset-confirm-password">
+              {{ t('auth.resetPassword.confirmPassword') }} <span class="required-mark" aria-hidden="true">*</span>
             </label>
-            <div class="input-wrapper password-wrapper">
+            <div class="input-icon-wrapper password-wrapper">
+              <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
               <input
-                id="reset-password-confirm"
+                id="reset-confirm-password"
                 v-model="confirmPassword"
                 :type="showConfirmPassword ? 'text' : 'password'"
                 name="confirmPassword"
                 autocomplete="new-password"
                 :placeholder="t('auth.resetPassword.confirmPasswordPlaceholder')"
                 required
+                class="with-icon"
                 :disabled="isSubmitting"
                 :aria-invalid="!!fieldErrors.confirmPassword"
-                :aria-describedby="fieldErrors.confirmPassword ? 'reset-password-confirm-error' : undefined"
+                :aria-describedby="fieldErrors.confirmPassword ? 'reset-confirm-error' : undefined"
                 @input="clearFieldError('confirmPassword')"
               />
               <button
@@ -243,7 +281,6 @@ function goToLogin() {
                 :disabled="isSubmitting"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
-                <!-- Eye icon (Show) -->
                 <svg
                   v-if="!showConfirmPassword"
                   xmlns="http://www.w3.org/2000/svg"
@@ -253,14 +290,13 @@ function goToLogin() {
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   aria-hidden="true"
                 >
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
-                <!-- Eye-off icon (Hide) -->
                 <svg
                   v-else
                   xmlns="http://www.w3.org/2000/svg"
@@ -270,8 +306,8 @@ function goToLogin() {
                   stroke-width="2"
                   stroke-linecap="round"
                   stroke-linejoin="round"
-                  width="20"
-                  height="20"
+                  width="18"
+                  height="18"
                   aria-hidden="true"
                 >
                   <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
@@ -281,7 +317,7 @@ function goToLogin() {
             </div>
             <p
               v-if="fieldErrors.confirmPassword"
-              id="reset-password-confirm-error"
+              id="reset-confirm-error"
               class="field-error-msg"
               role="alert"
             >
@@ -291,23 +327,21 @@ function goToLogin() {
 
           <button
             type="submit"
-            class="btn btn-block btn-submit"
+            class="btn btn-block btn-submit mt-1"
             :disabled="isSubmitting"
             :aria-busy="isSubmitting"
           >
-            <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
+            <span v-if="isSubmitting" class="spinner spinner-sm" aria-hidden="true"></span>
             <span>{{ isSubmitting ? t('auth.resetPassword.submitting') : t('auth.resetPassword.submit') }}</span>
           </button>
         </form>
       </template>
 
       <div class="auth-footer text-center mt-2">
-        <p v-if="!isSubmitted">
-          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resetPassword.backToLogin') }}</RouterLink>
-        </p>
-        <p v-else>
-          <button type="button" class="auth-link auth-link-btn" @click="goToLogin">{{ t('auth.resetPassword.goToLogin') }}</button>
-        </p>
+        <button v-if="isSubmitted" @click="goToLogin" class="btn btn-block">
+          {{ t('auth.resetPassword.goToLogin') }}
+        </button>
+        <RouterLink v-else :to="{ name: 'login' }" class="auth-link">{{ t('auth.resetPassword.backToLogin') }}</RouterLink>
       </div>
     </div>
   </div>
@@ -318,21 +352,34 @@ function goToLogin() {
   max-width: 460px;
   margin: 2.5rem auto;
   padding: 2.25rem 2rem;
+  border-radius: var(--radius-xl);
+}
+
+.auth-icon-badge {
+  font-size: 2.2rem;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  background: var(--color-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--shadow-xs);
 }
 
 .auth-header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.35rem;
+  font-size: 1.85rem;
+  margin-bottom: 0.25rem;
   color: var(--color-heading);
 }
 
 .auth-subtitle {
-  color: #5a736e;
-  font-size: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
 }
 
+/* Alert Styles */
 .alert {
   display: flex;
   align-items: flex-start;
@@ -342,18 +389,11 @@ function goToLogin() {
   font-size: 0.95rem;
   line-height: 1.4;
   margin-bottom: 1.25rem;
-  animation: fadeIn 0.25s ease-in-out;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .alert-body {
@@ -372,74 +412,54 @@ function goToLogin() {
   font-size: 0.9rem;
 }
 
+.alert-close {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.25rem;
+  color: inherit;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.alert-close:hover {
+  opacity: 1;
+}
+
 .alert-success {
-  background-color: #ebfbee;
-  color: #2b8a3e;
-  border: 1px solid #b2f2bb;
+  background-color: var(--color-success-soft);
+  border: 1px solid rgba(47, 158, 68, 0.3);
+  color: var(--color-success);
 }
 
 .alert-error {
-  background-color: #fff5f5;
-  color: #c92a2a;
-  border: 1px solid #ffc9c9;
+  background-color: var(--color-danger-soft);
+  border: 1px solid rgba(224, 49, 49, 0.3);
+  color: var(--color-danger);
 }
 
-.auth-form {
-  margin-top: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-heading);
-}
-
-.required-mark {
-  color: #e03131;
-  margin-left: 2px;
-}
-
-.input-wrapper {
+/* Input icons */
+.input-icon-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-wrapper input {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: white;
-  font-family: inherit;
-  font-size: 1rem;
-  color: var(--color-heading);
-  transition: border-color 0.2s, box-shadow 0.2s;
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-text-light);
+  pointer-events: none;
 }
 
-.input-wrapper input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
+.with-icon {
+  padding-left: 2.6rem !important;
 }
 
-.form-group.has-error input {
-  border-color: #fa5252;
-  background-color: #fff9f9;
-}
-
-.form-group.has-error input:focus {
-  box-shadow: 0 0 0 3px rgba(250, 82, 82, 0.15);
-}
-
-.password-wrapper input {
-  padding-right: 2.85rem;
+.password-wrapper {
+  position: relative;
 }
 
 .password-toggle-btn {
@@ -449,97 +469,39 @@ function goToLogin() {
   transform: translateY(-50%);
   background: none;
   border: none;
-  padding: 0.35rem;
+  color: var(--color-text-light);
   cursor: pointer;
-  color: #7b9490;
+  padding: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: color 0.2s, background-color 0.2s;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 
-.password-toggle-btn:hover:not(:disabled) {
+.password-toggle-btn:hover {
   color: var(--color-heading);
-  background-color: rgba(0, 0, 0, 0.05);
-}
-
-.field-error-msg {
-  color: #c92a2a;
-  font-size: 0.85rem;
-  margin-top: 0.35rem;
-  font-weight: 500;
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-.btn-block {
-  width: 100%;
 }
 
 .btn-submit {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-}
-
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 1rem;
 }
 
 .auth-footer {
-  margin-top: 1.75rem;
-  font-size: 0.95rem;
-  color: #5a736e;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
 }
 
 .auth-link {
+  font-weight: 600;
   color: var(--color-accent);
-  font-weight: 700;
-  text-decoration: underline;
 }
 
 .auth-link:hover {
-  opacity: 0.8;
-}
-
-.auth-link-btn {
-  background: none;
-  border: none;
-  font-family: inherit;
-  font-size: inherit;
-  cursor: pointer;
-  padding: 0;
-}
-
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem 1rem;
-    margin: 1.25rem auto;
-  }
-
-  .auth-header h1 {
-    font-size: 1.6rem;
-  }
-
-  .alert {
-    padding: 0.75rem 0.85rem;
-  }
+  text-decoration: underline;
 }
 </style>

@@ -34,7 +34,6 @@ function clearFieldError(field: string) {
   if (fieldErrors.value[field]) {
     delete fieldErrors.value[field]
   }
-  // Clear general credentials error when user starts typing again
   if (generalError.value) {
     generalError.value = ''
     isEmailNotConfirmed.value = false
@@ -54,7 +53,6 @@ function validateForm(): boolean {
     fieldErrors.value.email = t('auth.login.emailRequired')
     isValid = false
   } else {
-    // Basic standard email format check
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(trimmedEmail)) {
       fieldErrors.value.email = t('auth.login.emailInvalid')
@@ -89,7 +87,6 @@ async function handleSubmit() {
       { useCookies: true, useSessionCookies: !rememberMe.value }
     )
 
-    // Handle return URL redirection
     const redirect = route.query.redirect as string | undefined
     if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
       router.push(redirect)
@@ -114,10 +111,13 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="container">
-    <div class="auth-card card">
+  <div class="container container-narrow">
+    <div class="auth-card card card-elevated">
       <div class="auth-header text-center">
-        <h1>{{ t('auth.login.title') }}</h1>
+        <div class="auth-icon-badge">
+          <span>🎁</span>
+        </div>
+        <h1 class="mt-1">{{ t('auth.login.title') }}</h1>
         <p class="auth-subtitle">{{ t('auth.login.subtitle') }}</p>
       </div>
 
@@ -201,7 +201,11 @@ async function handleSubmit() {
           <label for="login-email">
             {{ t('common.labels.email') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
-          <div class="input-wrapper">
+          <div class="input-icon-wrapper">
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="20" height="16" x="2" y="4" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
             <input
               id="login-email"
               v-model="email"
@@ -210,6 +214,7 @@ async function handleSubmit() {
               autocomplete="username email"
               :placeholder="t('auth.login.emailPlaceholder')"
               required
+              class="with-icon"
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.email"
               :aria-describedby="fieldErrors.email ? 'login-email-error' : undefined"
@@ -231,7 +236,11 @@ async function handleSubmit() {
           <label for="login-password">
             {{ t('common.labels.password') }} <span class="required-mark" aria-hidden="true">*</span>
           </label>
-          <div class="input-wrapper password-wrapper">
+          <div class="input-icon-wrapper password-wrapper">
+            <svg class="input-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
             <input
               id="login-password"
               v-model="password"
@@ -240,6 +249,7 @@ async function handleSubmit() {
               autocomplete="current-password"
               :placeholder="t('auth.login.passwordPlaceholder')"
               required
+              class="with-icon"
               :disabled="isSubmitting"
               :aria-invalid="!!fieldErrors.password"
               :aria-describedby="fieldErrors.password ? 'login-password-error' : undefined"
@@ -264,8 +274,8 @@ async function handleSubmit() {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                width="20"
-                height="20"
+                width="18"
+                height="18"
                 aria-hidden="true"
               >
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -281,8 +291,8 @@ async function handleSubmit() {
                 stroke-width="2"
                 stroke-linecap="round"
                 stroke-linejoin="round"
-                width="20"
-                height="20"
+                width="18"
+                height="18"
                 aria-hidden="true"
               >
                 <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
@@ -321,7 +331,7 @@ async function handleSubmit() {
           :disabled="isSubmitting"
           :aria-busy="isSubmitting"
         >
-          <span v-if="isSubmitting" class="spinner" aria-hidden="true"></span>
+          <span v-if="isSubmitting" class="spinner spinner-sm" aria-hidden="true"></span>
           <span>{{ isSubmitting ? t('auth.login.submitting') : t('auth.login.submit') }}</span>
         </button>
       </form>
@@ -345,19 +355,31 @@ async function handleSubmit() {
   max-width: 460px;
   margin: 2.5rem auto;
   padding: 2.25rem 2rem;
+  border-radius: var(--radius-xl);
+}
+
+.auth-icon-badge {
+  font-size: 2.2rem;
+  width: 56px;
+  height: 56px;
   border-radius: var(--radius-lg);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  background: var(--color-accent-soft);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  box-shadow: var(--shadow-xs);
 }
 
 .auth-header h1 {
-  font-size: 2rem;
-  margin-bottom: 0.35rem;
+  font-size: 1.85rem;
+  margin-bottom: 0.25rem;
   color: var(--color-heading);
 }
 
 .auth-subtitle {
-  color: #5a736e;
-  font-size: 1rem;
+  color: var(--color-text-muted);
+  font-size: 0.95rem;
 }
 
 /* Alert Styles */
@@ -370,18 +392,6 @@ async function handleSubmit() {
   font-size: 0.95rem;
   line-height: 1.4;
   margin-bottom: 1.25rem;
-  animation: fadeIn 0.25s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .alert-icon {
@@ -422,74 +432,45 @@ async function handleSubmit() {
 }
 
 .alert-success {
-  background-color: #ebfbee;
-  color: #2b8a3e;
-  border: 1px solid #b2f2bb;
+  background-color: var(--color-success-soft);
+  border: 1px solid rgba(47, 158, 68, 0.3);
+  color: var(--color-success);
 }
 
 .alert-error {
-  background-color: #fff5f5;
-  color: #c92a2a;
-  border: 1px solid #ffc9c9;
+  background-color: var(--color-danger-soft);
+  border: 1px solid rgba(224, 49, 49, 0.3);
+  color: var(--color-danger);
 }
 
-/* Form Styles */
-.auth-form {
-  margin-top: 1.5rem;
-}
-
-.form-group {
-  margin-bottom: 1.25rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.4rem;
+.alert-action-link {
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
   font-weight: 600;
-  font-size: 0.95rem;
-  color: var(--color-heading);
+  color: inherit;
+  text-decoration: underline;
 }
 
-.required-mark {
-  color: #e03131;
-  margin-left: 2px;
-}
-
-.input-wrapper {
+/* Input icons */
+.input-icon-wrapper {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.input-wrapper input {
-  width: 100%;
-  padding: 0.8rem 1rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--color-border);
-  background: white;
-  font-family: inherit;
-  font-size: 1rem;
-  color: var(--color-heading);
-  transition: border-color 0.2s, box-shadow 0.2s;
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  color: var(--color-text-light);
+  pointer-events: none;
 }
 
-.input-wrapper input:focus {
-  outline: none;
-  border-color: var(--color-accent);
-  box-shadow: 0 0 0 3px var(--color-accent-soft);
+.with-icon {
+  padding-left: 2.6rem !important;
 }
 
-.form-group.has-error input {
-  border-color: #fa5252;
-  background-color: #fff9f9;
-}
-
-.form-group.has-error input:focus {
-  box-shadow: 0 0 0 3px rgba(250, 82, 82, 0.15);
-}
-
-.password-wrapper input {
-  padding-right: 2.85rem;
+.password-wrapper {
+  position: relative;
 }
 
 .password-toggle-btn {
@@ -499,39 +480,26 @@ async function handleSubmit() {
   transform: translateY(-50%);
   background: none;
   border: none;
-  padding: 0.35rem;
+  color: var(--color-text-light);
   cursor: pointer;
-  color: #7b9490;
+  padding: 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 4px;
-  transition: color 0.2s, background-color 0.2s;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
 }
 
-.password-toggle-btn:hover:not(:disabled) {
+.password-toggle-btn:hover {
   color: var(--color-heading);
-  background-color: rgba(0, 0, 0, 0.05);
 }
 
-.password-toggle-btn:focus-visible {
-  outline: 2px solid var(--color-accent);
-}
-
-.field-error-msg {
-  color: #c92a2a;
-  font-size: 0.85rem;
-  margin-top: 0.35rem;
-  font-weight: 500;
-  animation: fadeIn 0.2s ease-in-out;
-}
-
-/* Checkbox & Options */
 .form-options {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
 }
 
 .checkbox-container {
@@ -540,108 +508,39 @@ async function handleSubmit() {
   gap: 0.5rem;
   cursor: pointer;
   user-select: none;
-  font-size: 0.9rem;
-  color: #4f6d68;
+  color: var(--color-text);
 }
 
 .checkbox-container input {
-  cursor: pointer;
-  width: 17px;
-  height: 17px;
   accent-color: var(--color-accent);
+  width: 16px;
+  height: 16px;
 }
 
 .forgot-password-link {
-  font-size: 0.9rem;
-  color: var(--color-accent);
-  font-weight: 600;
-  text-decoration: underline;
-  white-space: nowrap;
-}
-
-.forgot-password-link:hover {
-  opacity: 0.8;
-}
-
-/* Submit Button & Spinner */
-.btn-block {
-  width: 100%;
+  font-size: 0.88rem;
+  font-weight: 500;
 }
 
 .btn-submit {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.85rem 1.5rem;
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: 0.3px;
+  width: 100%;
+  padding: 0.8rem;
+  font-size: 1rem;
 }
 
-.spinner {
-  width: 18px;
-  height: 18px;
-  border: 2.5px solid rgba(255, 255, 255, 0.4);
-  border-top-color: white;
-  border-radius: 50%;
-  animation: spin 0.75s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Footer */
 .auth-footer {
-  margin-top: 1.75rem;
-  font-size: 0.95rem;
-  color: #5a736e;
-}
-
-.alert-action-link {
-  display: inline-block;
-  margin-top: 0.35rem;
   font-size: 0.9rem;
-  margin-left: 0;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: 1.25rem;
 }
 
 .auth-link {
+  font-weight: 600;
   color: var(--color-accent);
-  font-weight: 700;
-  text-decoration: underline;
-  margin-left: 0.25rem;
 }
 
 .auth-link:hover {
-  opacity: 0.8;
-}
-
-@media (max-width: 480px) {
-  .auth-card {
-    padding: 1.5rem 1rem;
-    margin: 1.25rem auto;
-  }
-
-  .auth-header h1 {
-    font-size: 1.6rem;
-  }
-
-  .form-options {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .forgot-password-link {
-    white-space: normal;
-  }
-
-  .alert {
-    padding: 0.75rem 0.85rem;
-  }
+  text-decoration: underline;
 }
 </style>
