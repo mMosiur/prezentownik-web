@@ -239,6 +239,7 @@ function selectInput(event: FocusEvent) {
 
 .share-link-input {
   flex: 1;
+  min-width: 0;
   padding: 0.65rem 0.85rem;
   border-radius: var(--radius-md);
   border: 1.5px solid var(--color-border);
@@ -246,7 +247,6 @@ function selectInput(event: FocusEvent) {
   font-size: 0.92rem;
   font-family: monospace;
   color: var(--color-heading);
-  text-overflow: ellipsis;
 }
 
 .share-link-input:focus {
