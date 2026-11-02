@@ -330,14 +330,17 @@
     "anonymousClaimant": "Anonymous",
     "anonymousOwner": "Anonymous",
     "claimModal": {
+      "alreadyClaimed": "You already have a reservation for this gift. Cancel your existing reservation before making a new one.",
       "failed": "Failed to reserve gift. Please try again.",
       "nameLabel": "Your name (optional)",
       "namePlaceholder": "e.g. Jane",
+      "quantityInvalid": "Enter a positive whole number.",
       "quantityLabel": "Quantity",
       "submit": "Reserve",
       "submitting": "Reserving...",
       "title": "Reserve: {name}"
     },
+    "claimedOverTarget": "{claimed} reserved (target: {target}; {extra} over target)",
     "claimedProgress": "Reserved {claimed} of {target}",
     "claimedProgressUnlimited": "Reserved: {claimed}",
     "empty": "This list is currently empty.",
@@ -352,7 +355,20 @@
     "notFound": "Could not find this gift list. Please check if the link is correct.",
     "openLink": "View in store",
     "ownerPrefix": "Gift list from:",
+    "overTargetModal": {
+      "keep": "Keep my reservation",
+      "message": "After this reservation, {total} units of “{name}” are reserved against a target of {target} ({extra} over target). A reservation records your intention to give the gift; it does not confirm a purchase. You can keep your reservation or remove one of yours.",
+      "removeMyClaim": "Remove my reservation",
+      "removeOneOfMyClaims": "Remove one of my reservations",
+      "removeUnavailable": "This server did not provide an exact claim identifier, so this reservation cannot be safely removed here.",
+      "title": "Target exceeded"
+    },
+    "refresh": "Refresh list",
+    "refreshFailed": "Your reservation was saved, but the list could not be refreshed. Refresh it to check the latest counts.",
+    "refreshing": "Refreshing...",
     "selectGift": "Choose gift",
+    "tokenPersistenceWarning": "Your reservation was saved, but this browser could not store its cancellation token. You can cancel it only in this session; it may not be possible after you close it.",
+    "tokenPersistenceWarningBeforeClaim": "This browser cannot store cancellation tokens. If you reserve this gift, you may only be able to cancel it until you close this session.",
     "unclaim": "Cancel",
     "unclaimModal": {
       "confirmMessage": "Are you sure you want to cancel reservation for {name}?",

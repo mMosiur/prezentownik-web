@@ -330,14 +330,17 @@
     "anonymousClaimant": "Anonim",
     "anonymousOwner": "Anonima",
     "claimModal": {
+      "alreadyClaimed": "Masz już rezerwację tego prezentu. Anuluj ją, zanim utworzysz nową.",
       "failed": "Nie udało się zarezerwować prezentu. Spróbuj ponownie.",
       "nameLabel": "Twoje imię (opcjonalnie)",
       "namePlaceholder": "Np. Ania",
+      "quantityInvalid": "Podaj dodatnią liczbę całkowitą.",
       "quantityLabel": "Ilość",
       "submit": "Zarezerwuj",
       "submitting": "Rezerwowanie...",
       "title": "Rezerwacja: {name}"
     },
+    "claimedOverTarget": "Zarezerwowano {claimed} (cel: {target}; {extra} ponad cel)",
     "claimedProgress": "Zarezerwowano {claimed} z {target}",
     "claimedProgressUnlimited": "Zarezerwowano: {claimed}",
     "empty": "Ta lista jest jeszcze pusta.",
@@ -352,7 +355,20 @@
     "notFound": "Nie udało się znaleźć tej listy prezentowej. Sprawdź, czy link jest poprawny.",
     "openLink": "Zobacz w sklepie",
     "ownerPrefix": "Lista prezentów od:",
+    "overTargetModal": {
+      "keep": "Zachowaj rezerwację",
+      "message": "Po tej rezerwacji liczba zarezerwowanych sztuk prezentu „{name}” wynosi {total} przy celu {target} ({extra} ponad cel). Rezerwacja oznacza zamiar podarowania, nie potwierdza zakupu. Możesz zachować swoją rezerwację albo usunąć jedną ze swoich.",
+      "removeMyClaim": "Usuń moją rezerwację",
+      "removeOneOfMyClaims": "Usuń jedną z moich rezerwacji",
+      "removeUnavailable": "Serwer nie zwrócił identyfikatora konkretnej rezerwacji, dlatego nie można jej tutaj bezpiecznie usunąć.",
+      "title": "Przekroczono docelową liczbę"
+    },
+    "refresh": "Odśwież listę",
+    "refreshFailed": "Rezerwacja została zapisana, ale nie udało się odświeżyć listy. Sprawdź aktualne dane, odświeżając widok.",
+    "refreshing": "Odświeżanie...",
     "selectGift": "Wybierz prezent",
+    "tokenPersistenceWarning": "Rezerwacja została zapisana, ale przeglądarka nie mogła zapamiętać tokenu anulowania. Możesz anulować ją tylko w tej sesji; po jej zamknięciu może to nie być możliwe.",
+    "tokenPersistenceWarningBeforeClaim": "Przeglądarka nie może zapamiętać tokenu anulowania. Jeśli zarezerwujesz prezent, anulowanie może być możliwe tylko do zamknięcia tej sesji.",
     "unclaim": "Anuluj",
     "unclaimModal": {
       "confirmMessage": "Czy na pewno chcesz anulować rezerwację prezentu {name}?",

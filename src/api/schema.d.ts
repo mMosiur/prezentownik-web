@@ -1062,6 +1062,17 @@ export interface paths {
                     };
                     content?: never;
                 };
+                /** @description Conflict */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            message: string;
+                        };
+                    };
+                };
             };
         };
         /** @description Unclaim a gift */
@@ -1095,6 +1106,65 @@ export interface paths {
                 };
                 /** @description Forbidden */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lists/{listId}/items/{itemId}/claims/{claimId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Unclaim a specific gift claim owned by the current user */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    listId: string;
+                    itemId: string;
+                    claimId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description No Content */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Unauthorized */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Forbidden */
+                403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                /** @description Not Found */
+                404: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1188,6 +1258,8 @@ export interface components {
             claimantName: null | string;
         };
         CreateClaimResponse: {
+            /** Format: uuid */
+            claimId: string;
             /** Format: uuid */
             revocationToken: null | string;
         };

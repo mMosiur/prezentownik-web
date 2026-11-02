@@ -3,7 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
-import { useClaimStore, type PublicItem } from '@/stores/claim'
+import { ClaimAlreadyExistsError, useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
 import { useEscapeKey } from '@/composables/useEscapeKey'
@@ -28,7 +28,21 @@ const claimForm = ref({
   quantityClaimed: 1
 })
 const error = ref('')
+const quantityError = ref('')
 const isSubmittingClaim = ref(false)
+const canStoreAnonymousRevocationToken = ref(true)
+const overTargetNotice = ref<{
+  item: PublicItem
+  total: number
+  target: number
+  claimId: string | null
+  revocationToken: string | null
+} | null>(null)
+const overTargetError = ref('')
+const isRemovingOverTargetClaim = ref(false)
+const mutationRefreshFailed = ref(false)
+const isRefreshing = ref(false)
+const confirmedLocallyClaimedItemIds = ref(new Set<string>())
 
 const showUnclaimModal = ref(false)
 const itemToUnclaim = ref<PublicItem | null>(null)
@@ -52,6 +66,7 @@ onMounted(async () => {
 useEscapeKey(() => {
   if (showClaimModal.value && !isSubmittingClaim.value) showClaimModal.value = false
   else if (showUnclaimModal.value && !isUnclaiming.value) showUnclaimModal.value = false
+  else if (overTargetNotice.value && !isRemovingOverTargetClaim.value) overTargetNotice.value = null
 })
 
 const ownerInitials = computed(() => {
@@ -68,17 +83,18 @@ const ownerInitials = computed(() => {
 
 function openClaim(item: PublicItem) {
   selectedItem.value = item
+  canStoreAnonymousRevocationToken.value = Boolean(authStore.user) || claimStore.canPersistRevocationTokens()
   claimForm.value = {
     claimantName: authStore.user?.displayName || '',
     quantityClaimed: 1
   }
   error.value = ''
+  quantityError.value = ''
   showClaimModal.value = true
 }
 
 function maxClaimable(item: PublicItem) {
-  if (item.type !== 1) return 1
-  return Math.max(1, Number(item.targetQuantity || 1) - Number(item.totalClaimed || 0))
+  return item.type !== 1 ? 1 : 2_147_483_647
 }
 
 function incrementClaimQuantity() {
@@ -99,15 +115,52 @@ async function handleClaim() {
   if (!selectedItem.value || isSubmittingClaim.value) return
 
   error.value = ''
+  quantityError.value = ''
+  const quantityClaimed = selectedItem.value.type === 1 ? claimForm.value.quantityClaimed : 1
+  if (!Number.isInteger(quantityClaimed) || quantityClaimed < 1 || quantityClaimed > 2_147_483_647) {
+    quantityError.value = t('listPublic.claimModal.quantityInvalid')
+    return
+  }
+
   isSubmittingClaim.value = true
   try {
-    await claimStore.claimItem(listId, selectedItem.value.id, {
+    const claimedItem = selectedItem.value
+    const result = await claimStore.claimItem(listId, claimedItem.id, {
       claimantName: claimForm.value.claimantName.trim() || null,
-      quantityClaimed: claimForm.value.quantityClaimed
-    })
+      quantityClaimed
+    }, Boolean(authStore.user))
     toast.success(t('common.toasts.claimed'))
+    confirmedLocallyClaimedItemIds.value = new Set([...confirmedLocallyClaimedItemIds.value, claimedItem.id])
     showClaimModal.value = false
+    if (result.refreshError) {
+      mutationRefreshFailed.value = true
+      toast.warning(t('listPublic.refreshFailed'))
+    } else {
+      mutationRefreshFailed.value = false
+      const refreshedItem = claimStore.currentPublicList?.items.find(item => item.id === claimedItem.id)
+      if (refreshedItem && isOverTarget(refreshedItem)) {
+        overTargetNotice.value = {
+          item: refreshedItem,
+          total: Number(refreshedItem.totalClaimed),
+          target: Number(refreshedItem.targetQuantity),
+          claimId: result.claimId,
+          revocationToken: result.revocationToken
+        }
+        overTargetError.value = ''
+      }
+    }
   } catch (err: unknown) {
+    if (err instanceof ClaimAlreadyExistsError || (axios.isAxiosError(err) && err.response?.status === 409)) {
+      error.value = t('listPublic.claimModal.alreadyClaimed')
+      try {
+        await claimStore.fetchPublicList(listId)
+        mutationRefreshFailed.value = false
+      } catch {
+        mutationRefreshFailed.value = true
+      }
+      return
+    }
+
     const parsed = parseApiError(err, t('listPublic.claimModal.failed'))
     error.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listPublic.claimModal.failed')
   } finally {
@@ -127,10 +180,20 @@ async function confirmUnclaim() {
   unclaimError.value = ''
   isUnclaiming.value = true
   try {
-    await claimStore.unclaimItem(listId, itemToUnclaim.value.id)
+    const result = await claimStore.unclaimItem(listId, itemToUnclaim.value.id)
+    const unclaimedItemId = itemToUnclaim.value.id
+    const updatedClaimIds = new Set(confirmedLocallyClaimedItemIds.value)
+    updatedClaimIds.delete(unclaimedItemId)
+    confirmedLocallyClaimedItemIds.value = updatedClaimIds
     toast.success(t('common.toasts.unclaimed'))
     showUnclaimModal.value = false
     itemToUnclaim.value = null
+    if (result.refreshError) {
+      mutationRefreshFailed.value = true
+      toast.warning(t('listPublic.refreshFailed'))
+    } else {
+      mutationRefreshFailed.value = false
+    }
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('listPublic.unclaimModal.failed'))
     unclaimError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listPublic.unclaimModal.failed')
@@ -139,9 +202,63 @@ async function confirmUnclaim() {
   }
 }
 
+async function removeOverTargetClaim() {
+  if (!overTargetNotice.value || isRemovingOverTargetClaim.value) return
+
+  overTargetError.value = ''
+  isRemovingOverTargetClaim.value = true
+  try {
+    const result = await claimStore.unclaimSpecificClaim(
+      listId,
+      overTargetNotice.value.item.id,
+      overTargetNotice.value.claimId,
+      overTargetNotice.value.revocationToken,
+      Boolean(authStore.user)
+    )
+    const unclaimedItemId = overTargetNotice.value.item.id
+    const updatedClaimIds = new Set(confirmedLocallyClaimedItemIds.value)
+    updatedClaimIds.delete(unclaimedItemId)
+    confirmedLocallyClaimedItemIds.value = updatedClaimIds
+    overTargetNotice.value = null
+    toast.success(t('common.toasts.unclaimed'))
+    if (result.refreshError) {
+      mutationRefreshFailed.value = true
+      toast.warning(t('listPublic.refreshFailed'))
+    } else {
+      mutationRefreshFailed.value = false
+    }
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, t('listPublic.unclaimModal.failed'))
+    overTargetError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listPublic.unclaimModal.failed')
+  } finally {
+    isRemovingOverTargetClaim.value = false
+  }
+}
+
+async function refreshListAfterMutation() {
+  if (isRefreshing.value) return
+
+  isRefreshing.value = true
+  try {
+    await claimStore.fetchPublicList(listId)
+    mutationRefreshFailed.value = false
+  } catch {
+    mutationRefreshFailed.value = true
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
 function isClaimedByMe(itemId: string) {
   const item = claimStore.currentPublicList?.items?.find(i => i.id === itemId)
-  return Boolean(item?.isClaimedByCurrentUser) || Boolean(claimStore.getRevocationToken(itemId))
+  return confirmedLocallyClaimedItemIds.value.has(itemId)
+    || Boolean(item?.isClaimedByCurrentUser)
+    || claimStore.getRevocationTokens(itemId).length > 0
+}
+
+function isOverTarget(item: PublicItem) {
+  const target = Number(item.targetQuantity)
+  return item.type !== 2 && target > 0 && Number(item.totalClaimed) > target
 }
 
 function getProgress(item: PublicItem) {
@@ -229,6 +346,17 @@ function extractUrl(text: string | null): string | null {
         </div>
       </header>
 
+      <div v-if="mutationRefreshFailed" class="alert alert-warning mt-2" role="status">
+        <span>{{ t('listPublic.refreshFailed') }}</span>
+        <button type="button" class="btn btn-sm btn-outline" :disabled="isRefreshing" @click="refreshListAfterMutation">
+          {{ isRefreshing ? t('listPublic.refreshing') : t('listPublic.refresh') }}
+        </button>
+      </div>
+
+      <div v-if="claimStore.tokenPersistenceWarning" class="alert alert-warning mt-2" role="status">
+        {{ t('listPublic.tokenPersistenceWarning') }}
+      </div>
+
       <!-- Empty State -->
       <div v-if="claimStore.currentPublicList.items.length === 0" class="empty-state card text-center mt-2">
         <span class="empty-emoji">🎁</span>
@@ -243,7 +371,8 @@ function extractUrl(text: string | null): string | null {
           class="card item-card"
           :class="{
             'is-claimed-by-me': isClaimedByMe(item.id),
-            'is-fully-claimed': item.type !== 2 && Number(item.totalClaimed) >= Number(item.targetQuantity)
+            'is-fully-claimed': item.type !== 2 && Number(item.totalClaimed) >= Number(item.targetQuantity),
+            'is-over-target': isOverTarget(item)
           }"
         >
           <div class="item-body">
@@ -278,10 +407,16 @@ function extractUrl(text: string | null): string | null {
               <div class="item-status mt-1">
                 <template v-if="item.type !== 2">
                   <div class="progress-container">
-                    <div class="progress-bar" :style="{ width: getProgress(item) + '%' }"></div>
+                    <div class="progress-bar" :class="{ 'is-over-target': isOverTarget(item) }" :style="{ width: getProgress(item) + '%' }"></div>
                   </div>
                   <p class="status-text">
-                    {{ t('listPublic.claimedProgress', { claimed: item.totalClaimed, target: item.targetQuantity }) }}
+                    {{ isOverTarget(item)
+                      ? t('listPublic.claimedOverTarget', {
+                        claimed: item.totalClaimed,
+                        target: item.targetQuantity,
+                        extra: Number(item.totalClaimed) - Number(item.targetQuantity)
+                      })
+                      : t('listPublic.claimedProgress', { claimed: item.totalClaimed, target: item.targetQuantity }) }}
                   </p>
                 </template>
                 <template v-else>
@@ -314,8 +449,8 @@ function extractUrl(text: string | null): string | null {
                   {{ t('listPublic.unclaim') }}
                 </button>
               </div>
-              <button 
-                v-else-if="item.type === 2 || Number(item.totalClaimed) < Number(item.targetQuantity)" 
+              <button
+                v-else
                 @click="openClaim(item)" 
                 class="btn btn-block btn-claim"
               >
@@ -328,10 +463,6 @@ function extractUrl(text: string | null): string | null {
                 </svg>
                 <span>{{ t('listPublic.selectGift') }}</span>
               </button>
-              <div v-else class="fully-claimed">
-                <span class="check-icon">✓</span>
-                <span>{{ t('listPublic.fullyClaimed') }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -352,6 +483,10 @@ function extractUrl(text: string | null): string | null {
 
               <div v-if="error" class="alert alert-error mt-1" role="alert">
                 <span class="alert-desc">{{ error }}</span>
+              </div>
+
+              <div v-if="!authStore.user && !canStoreAnonymousRevocationToken" class="alert alert-warning mt-1" role="status">
+                {{ t('listPublic.tokenPersistenceWarningBeforeClaim') }}
               </div>
 
               <form @submit.prevent="handleClaim" class="mt-2" novalidate>
@@ -385,6 +520,8 @@ function extractUrl(text: string | null): string | null {
                       :max="maxClaimable(selectedItem)" 
                       required 
                       class="stepper-input"
+                      :aria-invalid="Boolean(quantityError)"
+                      :aria-describedby="quantityError ? 'claim-quantity-error' : undefined"
                       :disabled="isSubmittingClaim"
                     />
                     <button
@@ -396,6 +533,9 @@ function extractUrl(text: string | null): string | null {
                       +
                     </button>
                   </div>
+                  <p v-if="quantityError" id="claim-quantity-error" class="field-error-msg" role="alert">
+                    {{ quantityError }}
+                  </p>
                 </div>
 
                 <div class="modal-actions">
@@ -408,6 +548,51 @@ function extractUrl(text: string | null): string | null {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        </Transition>
+      </Teleport>
+
+      <!-- Over-target confirmation -->
+      <Teleport to="body">
+        <Transition name="modal-fade">
+          <div v-if="overTargetNotice" class="modal-overlay" @click="!isRemovingOverTargetClaim && (overTargetNotice = null)">
+            <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="over-target-title">
+              <div class="modal-header">
+                <div class="modal-title-wrap">
+                  <span class="modal-title-icon">⚠️</span>
+                  <h2 id="over-target-title">{{ t('listPublic.overTargetModal.title') }}</h2>
+                </div>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isRemovingOverTargetClaim" @click="overTargetNotice = null">&times;</button>
+              </div>
+
+              <div class="confirm-content mt-1">
+                <p class="confirm-message">
+                  {{ t('listPublic.overTargetModal.message', {
+                    name: overTargetNotice.item.name,
+                    total: overTargetNotice.total,
+                    target: overTargetNotice.target,
+                    extra: overTargetNotice.total - overTargetNotice.target
+                  }) }}
+                </p>
+                <p v-if="!overTargetNotice.claimId && !overTargetNotice.revocationToken" class="alert alert-warning mt-1" role="status">
+                  {{ t('listPublic.overTargetModal.removeUnavailable') }}
+                </p>
+              </div>
+
+              <div v-if="overTargetError" class="alert alert-error mt-1" role="alert">
+                <span class="alert-desc">{{ overTargetError }}</span>
+              </div>
+
+              <div class="modal-actions">
+                <button type="button" class="btn btn-outline" :disabled="isRemovingOverTargetClaim" @click="overTargetNotice = null">
+                  {{ t('listPublic.overTargetModal.keep') }}
+                </button>
+                <button v-if="overTargetNotice.claimId || overTargetNotice.revocationToken" type="button" class="btn btn-danger-solid" :disabled="isRemovingOverTargetClaim" @click="removeOverTargetClaim">
+                  <span v-if="isRemovingOverTargetClaim" class="spinner spinner-sm" aria-hidden="true"></span>
+                  <span>{{ authStore.user ? t('listPublic.overTargetModal.removeOneOfMyClaims') : t('listPublic.overTargetModal.removeMyClaim') }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </Transition>
@@ -692,6 +877,10 @@ function extractUrl(text: string | null): string | null {
   background: var(--color-background-soft);
 }
 
+.item-card.is-over-target:not(.is-claimed-by-me) {
+  border-color: var(--color-warning);
+}
+
 .item-body {
   display: flex;
   align-items: center;
@@ -761,6 +950,10 @@ function extractUrl(text: string | null): string | null {
   background: var(--color-accent-gradient);
   border-radius: var(--radius-full);
   transition: width 0.4s ease;
+}
+
+.progress-bar.is-over-target {
+  background: var(--color-warning);
 }
 
 .status-text {
