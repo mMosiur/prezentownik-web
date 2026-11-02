@@ -69,7 +69,6 @@ const authStore = useAuthStore()
       <section class="features-section container mt-2">
         <div class="features-grid">
           <div class="feature-card card card-interactive">
-            <div class="step-badge-num">1</div>
             <div class="feature-icon-box">
               <span class="feature-emoji">✨</span>
             </div>
@@ -78,7 +77,6 @@ const authStore = useAuthStore()
           </div>
 
           <div class="feature-card card card-interactive">
-            <div class="step-badge-num">2</div>
             <div class="feature-icon-box">
               <span class="feature-emoji">👥</span>
             </div>
@@ -87,7 +85,6 @@ const authStore = useAuthStore()
           </div>
 
           <div class="feature-card card card-interactive">
-            <div class="step-badge-num">3</div>
             <div class="feature-icon-box">
               <span class="feature-emoji">🤫</span>
             </div>
@@ -227,24 +224,6 @@ const authStore = useAuthStore()
   text-align: center;
   padding: 2.25rem 1.5rem 1.75rem;
   margin-bottom: 0;
-}
-
-.step-badge-num {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-full);
-  background: var(--color-accent);
-  color: #ffffff;
-  font-weight: 700;
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 2px 6px rgba(59, 119, 108, 0.3);
 }
 
 .step-icon-wrapper {
