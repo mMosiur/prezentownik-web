@@ -19,6 +19,7 @@ const showConfirmPassword = ref(false)
 const isSubmitting = ref(false)
 const isSubmitted = ref(false)
 const linkInvalid = ref(false)
+const invalidToken = ref(false)
 
 const generalError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
@@ -89,6 +90,12 @@ async function handleSubmit() {
     })
     isSubmitted.value = true
   } catch (err: unknown) {
+    if (hasInvalidTokenCode(err)) {
+      invalidToken.value = true
+      linkInvalid.value = true
+      return
+    }
+
     const parsed = parseApiError(err, t('auth.resetPassword.failedDefault'))
     generalError.value = parsed.message || t('auth.resetPassword.failedDefault')
     if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
@@ -97,6 +104,24 @@ async function handleSubmit() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function hasInvalidTokenCode(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null || !('response' in err)) return false
+
+  const response = (err as { response?: { data?: { errors?: unknown } } }).response
+  const errors = response?.data?.errors
+
+  if (Array.isArray(errors)) {
+    return errors.some(error =>
+      typeof error === 'object' && error !== null &&
+      'code' in error && typeof error.code === 'string' &&
+      error.code.toLowerCase() === 'invalidtoken'
+    )
+  }
+
+  return typeof errors === 'object' && errors !== null &&
+    Object.keys(errors).some(code => code.toLowerCase() === 'invalidtoken')
 }
 
 function goToLogin() {
@@ -123,7 +148,13 @@ function goToLogin() {
         aria-live="assertive"
       >
         <div class="alert-body">
-          <span class="alert-desc">{{ t('auth.resetPassword.invalidLink') }}</span>
+          <span class="alert-desc">{{ t(invalidToken ? 'auth.resetPassword.invalidToken' : 'auth.resetPassword.invalidLink') }}</span>
+          <RouterLink
+            :to="{ name: 'forgot-password', query: email ? { email } : {} }"
+            class="auth-link"
+          >
+            {{ t('auth.resetPassword.requestNewLink') }}
+          </RouterLink>
         </div>
       </div>
 
