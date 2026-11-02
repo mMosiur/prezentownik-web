@@ -43,6 +43,7 @@ const isRemovingOverTargetClaim = ref(false)
 const mutationRefreshFailed = ref(false)
 const isRefreshing = ref(false)
 const confirmedLocallyClaimedItemIds = ref(new Set<string>())
+const confirmedLocallyUnclaimedItemIds = ref(new Set<string>())
 
 const showUnclaimModal = ref(false)
 const itemToUnclaim = ref<PublicItem | null>(null)
@@ -136,12 +137,14 @@ async function handleClaim() {
       quantityClaimed
     }, Boolean(authStore.user))
     toast.success(t('common.toasts.claimed'))
-    confirmedLocallyClaimedItemIds.value = new Set([...confirmedLocallyClaimedItemIds.value, claimedItem.id])
     showClaimModal.value = false
     if (result.refreshError) {
+      confirmedLocallyClaimedItemIds.value = new Set([...confirmedLocallyClaimedItemIds.value, claimedItem.id])
       mutationRefreshFailed.value = true
       toast.warning(t('listPublic.refreshFailed'))
     } else {
+      confirmedLocallyClaimedItemIds.value = new Set()
+      confirmedLocallyUnclaimedItemIds.value = new Set()
       mutationRefreshFailed.value = false
       const refreshedItem = claimStore.currentPublicList?.items.find(item => item.id === claimedItem.id)
       if (refreshedItem && isOverTarget(refreshedItem)) {
@@ -160,6 +163,8 @@ async function handleClaim() {
       error.value = t('listPublic.claimModal.alreadyClaimed')
       try {
         await claimStore.fetchPublicList(listId)
+        confirmedLocallyClaimedItemIds.value = new Set()
+        confirmedLocallyUnclaimedItemIds.value = new Set()
         mutationRefreshFailed.value = false
       } catch {
         mutationRefreshFailed.value = true
@@ -191,6 +196,12 @@ async function confirmUnclaim() {
     const updatedClaimIds = new Set(confirmedLocallyClaimedItemIds.value)
     updatedClaimIds.delete(unclaimedItemId)
     confirmedLocallyClaimedItemIds.value = updatedClaimIds
+    if (result.refreshError) {
+      confirmedLocallyUnclaimedItemIds.value = new Set([...confirmedLocallyUnclaimedItemIds.value, unclaimedItemId])
+    } else {
+      confirmedLocallyClaimedItemIds.value = new Set()
+      confirmedLocallyUnclaimedItemIds.value = new Set()
+    }
     toast.success(t('common.toasts.unclaimed'))
     showUnclaimModal.value = false
     itemToUnclaim.value = null
@@ -225,6 +236,12 @@ async function removeOverTargetClaim() {
     const updatedClaimIds = new Set(confirmedLocallyClaimedItemIds.value)
     updatedClaimIds.delete(unclaimedItemId)
     confirmedLocallyClaimedItemIds.value = updatedClaimIds
+    if (result.refreshError) {
+      confirmedLocallyUnclaimedItemIds.value = new Set([...confirmedLocallyUnclaimedItemIds.value, unclaimedItemId])
+    } else {
+      confirmedLocallyClaimedItemIds.value = new Set()
+      confirmedLocallyUnclaimedItemIds.value = new Set()
+    }
     overTargetNotice.value = null
     toast.success(t('common.toasts.unclaimed'))
     if (result.refreshError) {
@@ -248,6 +265,8 @@ async function refreshListAfterMutation() {
   try {
     await claimStore.fetchPublicList(listId)
     mutationRefreshFailed.value = false
+    confirmedLocallyClaimedItemIds.value = new Set()
+    confirmedLocallyUnclaimedItemIds.value = new Set()
   } catch {
     mutationRefreshFailed.value = true
   } finally {
@@ -256,9 +275,11 @@ async function refreshListAfterMutation() {
 }
 
 function isClaimedByMe(itemId: string) {
+  if (confirmedLocallyUnclaimedItemIds.value.has(itemId)) return false
+  if (confirmedLocallyClaimedItemIds.value.has(itemId)) return true
+
   const item = claimStore.currentPublicList?.items?.find(i => i.id === itemId)
-  return confirmedLocallyClaimedItemIds.value.has(itemId)
-    || Boolean(item?.isClaimedByCurrentUser)
+  return Boolean(item?.isClaimedByCurrentUser)
     || claimStore.getRevocationTokens(itemId).length > 0
 }
 

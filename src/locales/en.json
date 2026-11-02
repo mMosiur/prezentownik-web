@@ -328,7 +328,10 @@
     "openLink": "Open link",
     "quantitySuffix": "Quantity: {qty}",
     "redirectNotice": "This is your list, so we redirected you here — on this page you won't see what was reserved so gifts remain a surprise. Use the 'Share' button to send the list to others.",
-    "reorderFailed": "Failed to reorder gifts."
+    "reorderFailed": "Failed to reorder gifts.",
+    "refresh": "Refresh list",
+    "refreshFailed": "Your change was saved, but the list may be out of date. Refresh to check for other changes.",
+    "refreshing": "Refreshing..."
   },
   "listPublic": {
     "anonymousClaimant": "Anonymous",
@@ -368,7 +371,7 @@
       "title": "Target exceeded"
     },
     "refresh": "Refresh list",
-    "refreshFailed": "Your reservation was saved, but the list could not be refreshed. Refresh it to check the latest counts.",
+    "refreshFailed": "Your change was saved, but the list could not be refreshed. Refresh it to check the latest counts.",
     "refreshing": "Refreshing...",
     "selectGift": "Choose gift",
     "tokenPersistenceWarning": "Your reservation was saved, but this browser could not store its cancellation token. You can cancel it only in this session; it may not be possible after you close it.",

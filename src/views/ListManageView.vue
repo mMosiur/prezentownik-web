@@ -59,6 +59,9 @@ const itemToDelete = ref<Item | null>(null)
 const isDeletingItem = ref(false)
 const deleteItemError = ref('')
 
+const mutationRefreshFailed = ref(false)
+const isRefreshingList = ref(false)
+
 const isReordering = ref(false)
 const reorderError = ref('')
 const draggedIndex = ref<number | null>(null)
@@ -224,11 +227,13 @@ async function saveItem() {
       targetQuantity: itemForm.value.type === 1 ? Number(itemForm.value.targetQuantity) : (itemForm.value.type === 0 ? 1 : null)
     }
     if (editingItem.value) {
-      await listStore.updateItem(listId, editingItem.value.id, payload)
+      const result = await listStore.updateItem(listId, editingItem.value.id, payload)
       toast.success(t('common.toasts.itemUpdated'))
+      mutationRefreshFailed.value = result.refreshError !== null
     } else {
-      await listStore.addItem(listId, payload)
+      const result = await listStore.addItem(listId, payload)
       toast.success(t('common.toasts.itemAdded'))
+      mutationRefreshFailed.value = result.refreshError !== null
     }
     showItemModal.value = false
   } catch (err: unknown) {
@@ -251,8 +256,9 @@ async function confirmDeleteItem() {
   deleteItemError.value = ''
   isDeletingItem.value = true
   try {
-    await listStore.deleteItem(listId, itemToDelete.value.id)
+    const result = await listStore.deleteItem(listId, itemToDelete.value.id)
     toast.success(t('common.toasts.itemDeleted'))
+    mutationRefreshFailed.value = result.refreshError !== null
     showDeleteItemModal.value = false
     itemToDelete.value = null
   } catch (err: unknown) {
@@ -260,6 +266,20 @@ async function confirmDeleteItem() {
     deleteItemError.value = parsed.message
   } finally {
     isDeletingItem.value = false
+  }
+}
+
+async function refreshListAfterMutation() {
+  if (isRefreshingList.value) return
+
+  isRefreshingList.value = true
+  try {
+    await listStore.fetchListDetails(listId)
+    mutationRefreshFailed.value = false
+  } catch {
+    mutationRefreshFailed.value = true
+  } finally {
+    isRefreshingList.value = false
   }
 }
 
@@ -386,6 +406,13 @@ function extractUrl(text: string | null): string | null {
           <span class="alert-desc">{{ t('listManage.redirectNotice') }}</span>
         </div>
         <button class="close-btn" :aria-label="t('common.actions.close')" @click="dismissRedirectNotice">&times;</button>
+      </div>
+
+      <div v-if="mutationRefreshFailed" class="alert alert-warning mt-2" role="status">
+        <span>{{ t('listManage.refreshFailed') }}</span>
+        <button type="button" class="btn btn-sm btn-outline" :disabled="isRefreshingList" @click="refreshListAfterMutation">
+          {{ isRefreshingList ? t('listManage.refreshing') : t('listManage.refresh') }}
+        </button>
       </div>
 
       <!-- Hero Header Card -->

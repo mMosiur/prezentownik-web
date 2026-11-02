@@ -328,7 +328,10 @@
     "openLink": "Otwórz link",
     "quantitySuffix": "Ilość: {qty}",
     "redirectNotice": "To Twoja lista, więc przenieśliśmy Cię tutaj — na tej stronie nie zobaczysz, co zostało zarezerwowane, aby prezenty pozostały niespodzianką. Użyj przycisku „Udostępnij”, aby wysłać listę innym.",
-    "reorderFailed": "Nie udało się zmienić kolejności prezentów."
+    "reorderFailed": "Nie udało się zmienić kolejności prezentów.",
+    "refresh": "Odśwież listę",
+    "refreshFailed": "Zmiana została zapisana, ale lista może być nieaktualna. Odśwież ją, aby sprawdzić pozostałe zmiany.",
+    "refreshing": "Odświeżanie..."
   },
   "listPublic": {
     "anonymousClaimant": "Anonim",
@@ -368,7 +371,7 @@
       "title": "Przekroczono docelową liczbę"
     },
     "refresh": "Odśwież listę",
-    "refreshFailed": "Rezerwacja została zapisana, ale nie udało się odświeżyć listy. Sprawdź aktualne dane, odświeżając widok.",
+    "refreshFailed": "Zmiana została zapisana, ale nie udało się odświeżyć listy. Odśwież ją, aby sprawdzić najnowsze dane.",
     "refreshing": "Odświeżanie...",
     "selectGift": "Wybierz prezent",
     "tokenPersistenceWarning": "Rezerwacja została zapisana, ale przeglądarka nie mogła zapamiętać tokenu anulowania. Możesz anulować ją tylko w tej sesji; po jej zamknięciu może to nie być możliwe.",

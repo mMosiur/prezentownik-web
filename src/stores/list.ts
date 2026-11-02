@@ -69,18 +69,55 @@ export const useListStore = defineStore('list', () => {
   }
 
   async function addItem(listId: string, item: UpsertItemRequest) {
-    await client.post(`/user/lists/${listId}/items`, item)
-    await fetchListDetails(listId)
+    const response = await client.post<Item>(`/user/lists/${listId}/items`, item)
+    if (currentList.value?.id === listId) {
+      currentList.value.items = [...currentList.value.items, response.data]
+        .sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+    }
+
+    let refreshError: unknown = null
+    try {
+      await fetchListDetails(listId)
+    } catch (err: unknown) {
+      refreshError = err
+    }
+    return { item: response.data, refreshError }
   }
 
   async function updateItem(listId: string, itemId: string, item: UpsertItemRequest) {
-    await client.put(`/user/lists/${listId}/items/${itemId}`, item)
-    await fetchListDetails(listId)
+    const response = await client.put<Item>(`/user/lists/${listId}/items/${itemId}`, item)
+    if (currentList.value?.id === listId) {
+      const itemIndex = currentList.value.items.findIndex(existingItem => existingItem.id === itemId)
+      if (itemIndex === -1) {
+        currentList.value.items.push(response.data)
+      } else {
+        currentList.value.items[itemIndex] = response.data
+      }
+      currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+    }
+
+    let refreshError: unknown = null
+    try {
+      await fetchListDetails(listId)
+    } catch (err: unknown) {
+      refreshError = err
+    }
+    return { item: response.data, refreshError }
   }
 
   async function deleteItem(listId: string, itemId: string) {
     await client.delete(`/user/lists/${listId}/items/${itemId}`)
-    await fetchListDetails(listId)
+    if (currentList.value?.id === listId) {
+      currentList.value.items = currentList.value.items.filter(item => item.id !== itemId)
+    }
+
+    let refreshError: unknown = null
+    try {
+      await fetchListDetails(listId)
+    } catch (err: unknown) {
+      refreshError = err
+    }
+    return { refreshError }
   }
 
   async function reorderItems(listId: string, itemIds: string[]) {
