@@ -15,6 +15,7 @@ const displayName = ref('')
 const isSaving = ref(false)
 const isLoggingOut = ref(false)
 const generalError = ref('')
+const logoutError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 
 function initDisplayName() {
@@ -94,12 +95,20 @@ async function handleSaveProfile() {
 
 async function handleLogout() {
   if (isLoggingOut.value) return
+  logoutError.value = ''
   isLoggingOut.value = true
+  let logoutSucceeded = false
   try {
     await authStore.logout()
-    await router.push({ name: 'home' })
+    logoutSucceeded = true
+  } catch {
+    logoutError.value = t('account.logoutFailed')
   } finally {
     isLoggingOut.value = false
+  }
+
+  if (logoutSucceeded) {
+    await router.push({ name: 'home' })
   }
 }
 </script>
@@ -213,6 +222,9 @@ async function handleLogout() {
           <span>{{ isLoggingOut ? t('account.loggingOut') : t('account.logout') }}</span>
         </button>
       </div>
+      <p v-if="logoutError" class="field-error-msg mt-1" role="alert">
+        {{ logoutError }}
+      </p>
     </div>
   </div>
 </template>

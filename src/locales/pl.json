@@ -8,6 +8,7 @@
     "emailLabel": "Adres e-mail",
     "loggingOut": "Wylogowywanie...",
     "logout": "Wyloguj się",
+    "logoutFailed": "Nie udało się potwierdzić wylogowania. Sesja może być nadal aktywna; spróbuj ponownie.",
     "profileSection": "Informacje o profilu",
     "saveFailed": "Nie udało się zaktualizować danych konta.",
     "saveSuccess": "Dane konta zostały pomyślnie zaktualizowane.",

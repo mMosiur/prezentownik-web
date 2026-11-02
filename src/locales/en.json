@@ -8,6 +8,7 @@
     "emailLabel": "Email address",
     "loggingOut": "Logging out...",
     "logout": "Log Out",
+    "logoutFailed": "We couldn't confirm that you were signed out. Your session may still be active; please try again.",
     "profileSection": "Profile Information",
     "saveFailed": "Failed to update account details.",
     "saveSuccess": "Account details updated successfully.",
