@@ -22,6 +22,9 @@ export const useClaimStore = defineStore('claim', () => {
   const currentPublicList = ref<PublicList | null>(null)
   const isLoading = ref(false)
   const tokenPersistenceWarning = ref(false)
+  const adoptionNeedsAttention = ref(false)
+  const adoptionRequestFailed = ref(false)
+  const isAdoptingStoredClaims = ref(false)
   const inMemoryRevocationTokens = new Map<string, string[]>()
   const volatileRevocationTokens = new Map<string, Set<string>>()
   const pendingAnonymousClaims = new Set<string>()
@@ -65,6 +68,23 @@ export const useClaimStore = defineStore('claim', () => {
       storage.removeItem(key)
       return true
     } catch {
+      return false
+    }
+  }
+
+  function retryPersistRevocationTokens(): boolean {
+    try {
+      const storage = window.localStorage
+      for (const [itemId, tokens] of volatileRevocationTokens) {
+        for (const token of tokens) {
+          storage.setItem(`claim_token_${itemId}_${token}`, token)
+        }
+        volatileRevocationTokens.delete(itemId)
+      }
+      updateTokenPersistenceWarning()
+      return !tokenPersistenceWarning.value
+    } catch {
+      updateTokenPersistenceWarning()
       return false
     }
   }
@@ -129,6 +149,7 @@ export const useClaimStore = defineStore('claim', () => {
     } catch {
       // The server-side mutation has already succeeded; do not turn it into a reported failure.
     }
+    clearAdoptionWarningWhenNoTokensRemain()
   }
 
   function getAllStoredRevocationTokens(): string[] {
@@ -185,21 +206,43 @@ export const useClaimStore = defineStore('claim', () => {
     } catch {
       // Keep adoption best-effort when browser storage is unavailable.
     }
+    clearAdoptionWarningWhenNoTokensRemain()
+  }
+
+  function clearAdoptionWarningWhenNoTokensRemain() {
+    if (getAllStoredRevocationTokens().length === 0) {
+      adoptionNeedsAttention.value = false
+      adoptionRequestFailed.value = false
+    }
   }
 
   async function adoptStoredClaims() {
     const tokens = getAllStoredRevocationTokens()
-    if (tokens.length === 0) return
+    if (tokens.length === 0) {
+      adoptionNeedsAttention.value = false
+      adoptionRequestFailed.value = false
+      return
+    }
+    if (isAdoptingStoredClaims.value) return
 
+    isAdoptingStoredClaims.value = true
+    adoptionRequestFailed.value = false
     try {
       const response = await client.post<AdoptClaimsResponse>('/lists/claims/adopt', {
         revocationTokens: tokens
       })
       if (response.data.adoptedClaimsRevocationTokens?.length) {
-        response.data.adoptedClaimsRevocationTokens.forEach(removeStoredRevocationToken)
+        response.data.adoptedClaimsRevocationTokens
+          .filter(token => tokens.includes(token))
+          .forEach(removeStoredRevocationToken)
       }
+      adoptionNeedsAttention.value = getAllStoredRevocationTokens().length > 0
     } catch {
-      // Retain tokens so adoption can be retried later.
+      // The response may be lost after the server adopts a claim; retain credentials and let the user retry.
+      adoptionNeedsAttention.value = getAllStoredRevocationTokens().length > 0
+      adoptionRequestFailed.value = adoptionNeedsAttention.value
+    } finally {
+      isAdoptingStoredClaims.value = false
     }
   }
 
@@ -307,8 +350,9 @@ export const useClaimStore = defineStore('claim', () => {
 
   return {
     currentPublicList, isLoading, tokenPersistenceWarning,
+    adoptionNeedsAttention, adoptionRequestFailed, isAdoptingStoredClaims,
     fetchPublicList, claimItem, unclaimItem, unclaimSpecificClaim,
     getRevocationToken, getRevocationTokens, setRevocationToken, removeRevocationToken,
-    getAllStoredRevocationTokens, adoptStoredClaims, canPersistRevocationTokens
+    getAllStoredRevocationTokens, adoptStoredClaims, canPersistRevocationTokens, retryPersistRevocationTokens
   }
 })

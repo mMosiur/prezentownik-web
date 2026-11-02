@@ -3,16 +3,22 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useClaimStore } from '@/stores/claim'
 import { useLanguage } from '@/composables/useLanguage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import ToastContainer from '@/components/ToastContainer.vue'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const claimStore = useClaimStore()
 const route = useRoute()
 const { currentLang, changeLanguage, supportedLanguages } = useLanguage()
 
 const iconUrl = `${import.meta.env.BASE_URL}favicon.svg`
+
+async function retryClaimAdoption() {
+  await claimStore.adoptStoredClaims()
+}
 
 const isMobileMenuOpen = ref(false)
 const showColdStartHint = ref(false)
@@ -258,6 +264,23 @@ onUnmounted(() => {
   </Transition>
 
   <main class="app-main">
+    <div
+      v-if="!authStore.isLoading && authStore.isAuthenticated && claimStore.adoptionNeedsAttention"
+      class="container mt-2"
+    >
+      <div class="alert alert-warning" role="status">
+        <span>{{ t(claimStore.adoptionRequestFailed ? 'app.claimAdoptionFailed' : 'app.claimAdoptionPending') }}</span>
+        <button
+          type="button"
+          class="btn btn-sm btn-outline"
+          :disabled="claimStore.isAdoptingStoredClaims"
+          @click="retryClaimAdoption"
+        >
+          {{ claimStore.isAdoptingStoredClaims ? t('app.claimAdoptionRetrying') : t('app.claimAdoptionRetry') }}
+        </button>
+      </div>
+    </div>
+
     <div v-if="authStore.isLoading" class="container mt-2">
       <div class="card loading-state text-center" aria-live="polite" aria-busy="true">
         <span class="spinner spinner-accent spinner-lg" aria-hidden="true"></span>

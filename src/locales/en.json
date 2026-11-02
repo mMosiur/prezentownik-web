@@ -27,6 +27,10 @@
     },
     "footerText": "2026 Prezentownik.info.pl",
     "loading": "Loading...",
+    "claimAdoptionFailed": "We couldn't confirm whether all saved reservations were transferred. They remain saved in this browser; retry to check again.",
+    "claimAdoptionPending": "Some reservation tokens remain unresolved. The reservations may already be on this account or may still be anonymous; they remain saved in this browser. Retry or check their status on the shared gift list.",
+    "claimAdoptionRetry": "Retry transfer",
+    "claimAdoptionRetrying": "Checking...",
     "serverWakingUp": "Waking up server (first request may take a few seconds)..."
   },
   "auth": {
@@ -369,6 +373,8 @@
     "selectGift": "Choose gift",
     "tokenPersistenceWarning": "Your reservation was saved, but this browser could not store its cancellation token. You can cancel it only in this session; it may not be possible after you close it.",
     "tokenPersistenceWarningBeforeClaim": "This browser cannot store cancellation tokens. If you reserve this gift, you may only be able to cancel it until you close this session.",
+    "tokenPersistenceRetry": "Retry saving cancellation details",
+    "tokenPersistenceRecovered": "Cancellation details are now saved in this browser.",
     "unclaim": "Cancel",
     "unclaimModal": {
       "confirmMessage": "Are you sure you want to cancel reservation for {name}?",

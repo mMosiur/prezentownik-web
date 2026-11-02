@@ -13,7 +13,12 @@ const client = axios.create({
 
 // Interceptor to ensure Accept-Language is always set
 client.interceptors.request.use((config) => {
-  const userLang = localStorage.getItem('user-language') || 'pl'
+  let userLang = 'pl'
+  try {
+    userLang = localStorage.getItem('user-language') || 'pl'
+  } catch {
+    // Requests should still work when browser storage is unavailable.
+  }
   if (config.headers && !config.headers['Accept-Language']) {
     config.headers['Accept-Language'] = userLang
   }

@@ -32,14 +32,15 @@ export const useAuthStore = defineStore('auth', () => {
       // Use /auth/me as verified in backend code
       const response = await client.get<UserInfo>('/auth/me')
       user.value = response.data
-      if (user.value) {
-        const claimStore = useClaimStore()
-        await claimStore.adoptStoredClaims()
-      }
     } catch (error) {
       user.value = null
     } finally {
       isLoading.value = false
+    }
+
+    if (user.value) {
+      const claimStore = useClaimStore()
+      await claimStore.adoptStoredClaims()
     }
   }
 

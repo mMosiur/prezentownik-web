@@ -27,6 +27,10 @@
     },
     "footerText": "2026 Prezentownik.info.pl",
     "loading": "Ładowanie...",
+    "claimAdoptionFailed": "Nie udało się potwierdzić, czy wszystkie zapisane rezerwacje zostały przeniesione. Nadal są zapisane w tej przeglądarce; ponów próbę, aby to sprawdzić.",
+    "claimAdoptionPending": "Niektóre tokeny rezerwacji mają nierozstrzygnięty status. Rezerwacje mogą być już przypisane do tego konta albo nadal anonimowe; tokeny pozostają zapisane w tej przeglądarce. Ponów próbę lub sprawdź status na udostępnionej liście prezentów.",
+    "claimAdoptionRetry": "Ponów przenoszenie",
+    "claimAdoptionRetrying": "Sprawdzanie...",
     "serverWakingUp": "Uruchamianie serwera (pierwsze zapytanie może potrwać kilka sekund)..."
   },
   "auth": {
@@ -369,6 +373,8 @@
     "selectGift": "Wybierz prezent",
     "tokenPersistenceWarning": "Rezerwacja została zapisana, ale przeglądarka nie mogła zapamiętać tokenu anulowania. Możesz anulować ją tylko w tej sesji; po jej zamknięciu może to nie być możliwe.",
     "tokenPersistenceWarningBeforeClaim": "Przeglądarka nie może zapamiętać tokenu anulowania. Jeśli zarezerwujesz prezent, anulowanie może być możliwe tylko do zamknięcia tej sesji.",
+    "tokenPersistenceRetry": "Ponów zapisywanie danych anulowania",
+    "tokenPersistenceRecovered": "Dane potrzebne do anulowania są już zapisane w tej przeglądarce.",
     "unclaim": "Anuluj",
     "unclaimModal": {
       "confirmMessage": "Czy na pewno chcesz anulować rezerwację prezentu {name}?",

@@ -93,6 +93,12 @@ function openClaim(item: PublicItem) {
   showClaimModal.value = true
 }
 
+function retryTokenPersistence() {
+  if (claimStore.retryPersistRevocationTokens()) {
+    toast.success(t('listPublic.tokenPersistenceRecovered'))
+  }
+}
+
 function maxClaimable(item: PublicItem) {
   return item.type !== 1 ? 1 : 2_147_483_647
 }
@@ -355,6 +361,9 @@ function extractUrl(text: string | null): string | null {
 
       <div v-if="claimStore.tokenPersistenceWarning" class="alert alert-warning mt-2" role="status">
         {{ t('listPublic.tokenPersistenceWarning') }}
+        <button type="button" class="btn btn-sm btn-outline" @click="retryTokenPersistence">
+          {{ t('listPublic.tokenPersistenceRetry') }}
+        </button>
       </div>
 
       <!-- Empty State -->

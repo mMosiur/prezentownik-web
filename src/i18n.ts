@@ -4,7 +4,12 @@ import en from './locales/en.json'
 
 function resolveInitialLocale(): string {
   // 1. Check saved user preference
-  const savedLocale = localStorage.getItem('user-language') || localStorage.getItem('user_locale')
+  let savedLocale: string | null = null
+  try {
+    savedLocale = localStorage.getItem('user-language') || localStorage.getItem('user_locale')
+  } catch {
+    // Continue with the browser language when storage is unavailable.
+  }
   if (savedLocale) return savedLocale
 
   // 2. Check browser settings
