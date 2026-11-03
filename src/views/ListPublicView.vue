@@ -649,6 +649,8 @@ function extractUrl(text: string | null): string | null {
                   <label for="claimant-name">{{ t('listPublic.claimModal.nameLabel') }}</label>
                   <input
                     id="claimant-name"
+                    type="text"
+                    autocomplete="name"
                     v-model="claimForm.claimantName"
                     :placeholder="t('listPublic.claimModal.namePlaceholder')"
                     :disabled="isSubmittingClaim"

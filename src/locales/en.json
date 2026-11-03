@@ -459,6 +459,11 @@
     "shareText": "Check out my gift list and reserve something for me!",
     "shareTitle": "Gift list: {name}",
     "shareTitleDefault": "Gift list",
-    "title": "Share list"
+    "title": "Share list",
+    "email": "Email",
+    "nativeShareMobile": "Send via app...",
+    "previewAsGuest": "Preview as guest",
+    "quickShareLabel": "Quick share:",
+    "whatsApp": "WhatsApp"
   }
 }

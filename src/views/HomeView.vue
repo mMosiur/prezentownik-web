@@ -182,20 +182,24 @@ const authStore = useAuthStore()
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 1.75rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
   margin-top: 2.5rem;
   padding-top: 1.75rem;
   border-top: 1px dashed var(--color-border);
-  color: var(--color-text-muted);
-  font-size: 0.92rem;
-  font-weight: 600;
 }
 
 .trust-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.45rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-accent-soft);
+  border-radius: var(--radius-full);
+  color: var(--color-accent-hover);
+  border: 1px solid rgba(59, 119, 108, 0.2);
+  font-size: 0.9rem;
+  font-weight: 600;
 }
 
 .trust-icon {

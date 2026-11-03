@@ -63,7 +63,7 @@ body {
   color: var(--color-text);
   background: var(--color-background);
   line-height: 1.55;
-  font-family: "Arima", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   font-size: 16px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -76,12 +76,21 @@ body {
   background-attachment: fixed;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1, h2, h3 {
   color: var(--color-heading);
   font-family: "Arima", sans-serif;
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: -0.015em;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+h4, h5, h6 {
+  color: var(--color-heading);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.3;
   overflow-wrap: break-word;
   word-wrap: break-word;
 }
@@ -92,6 +101,7 @@ p, span, a, label {
 
 input, button, textarea, select {
   font: inherit;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   max-width: 100%;
 }
 

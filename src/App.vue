@@ -354,6 +354,7 @@ onUnmounted(() => {
 }
 
 .brand-name {
+  font-family: "Arima", sans-serif;
   font-size: 1.45rem;
   font-weight: 700;
   color: var(--color-heading);
@@ -629,6 +630,7 @@ onUnmounted(() => {
   }
 
   .brand-name {
+  font-family: "Arima", sans-serif;
     font-size: 1.3rem;
   }
 
@@ -640,6 +642,7 @@ onUnmounted(() => {
 
 @media (max-width: 440px) {
   .brand-name {
+  font-family: "Arima", sans-serif;
     font-size: 1.18rem;
   }
 

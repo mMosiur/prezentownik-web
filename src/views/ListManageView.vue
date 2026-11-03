@@ -1405,25 +1405,29 @@ function extractUrl(text: string | null): string | null {
 .item-badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.15rem 0.55rem;
+  padding: 0.2rem 0.65rem;
   border-radius: var(--radius-full);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
+  border: 1px solid transparent;
 }
 
 .badge-type-0 {
   background: var(--color-accent-soft);
-  color: var(--color-accent);
+  color: #24574e;
+  border-color: rgba(43, 98, 88, 0.22);
 }
 
 .badge-type-1 {
-  background: rgba(245, 159, 0, 0.12);
-  color: #b36b00;
+  background: rgba(245, 159, 0, 0.14);
+  color: #995700;
+  border-color: rgba(180, 105, 0, 0.28);
 }
 
 .badge-type-2 {
-  background: rgba(74, 144, 226, 0.12);
-  color: #2a6ac0;
+  background: rgba(74, 144, 226, 0.14);
+  color: #1e5ba8;
+  border-color: rgba(30, 91, 168, 0.28);
 }
 
 .item-description {
