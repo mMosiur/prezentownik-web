@@ -388,14 +388,14 @@ function openShareModal(list: ListSummary) {
     <!-- Create Modal -->
     <Teleport to="body">
       <Transition name="modal-fade">
-        <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+        <div v-if="showCreateModal" class="modal-overlay" @click="!isCreating && (showCreateModal = false)">
           <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="create-list-title">
             <div class="modal-header">
               <div class="modal-title-wrap">
                 <span class="modal-title-icon">✨</span>
                 <h2 id="create-list-title">{{ t('dashboard.createModal.title') }}</h2>
               </div>
-              <button class="close-btn" :aria-label="t('common.actions.close')" @click="showCreateModal = false">&times;</button>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isCreating" @click="!isCreating && (showCreateModal = false)">&times;</button>
             </div>
 
             <div v-if="createError" class="alert alert-error mt-1" role="alert">
@@ -413,9 +413,11 @@ function openShareModal(list: ListSummary) {
                   required
                   :placeholder="t('dashboard.createModal.namePlaceholder')"
                   :disabled="isCreating"
+                  :aria-invalid="Boolean(createFieldErrors.name)"
+                  :aria-describedby="createFieldErrors.name ? 'create-list-name-error' : undefined"
                   @input="clearCreateFieldError('name')"
                 />
-                <p v-if="createFieldErrors.name" class="field-error-msg" role="alert">
+                <p v-if="createFieldErrors.name" id="create-list-name-error" class="field-error-msg" role="alert">
                   {{ createFieldErrors.name }}
                 </p>
               </div>
@@ -447,14 +449,14 @@ function openShareModal(list: ListSummary) {
     <!-- Edit Modal -->
     <Teleport to="body">
       <Transition name="modal-fade">
-        <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+        <div v-if="showEditModal" class="modal-overlay" @click="!isEditing && (showEditModal = false)">
           <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-dashboard-list-title">
             <div class="modal-header">
               <div class="modal-title-wrap">
                 <span class="modal-title-icon">✏️</span>
                 <h2 id="edit-dashboard-list-title">{{ t('dashboard.editModal.title') }}</h2>
               </div>
-              <button class="close-btn" :aria-label="t('common.actions.close')" @click="showEditModal = false">&times;</button>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isEditing" @click="!isEditing && (showEditModal = false)">&times;</button>
             </div>
 
             <div v-if="editError" class="alert alert-error mt-1" role="alert">
@@ -472,9 +474,11 @@ function openShareModal(list: ListSummary) {
                   required
                   :placeholder="t('dashboard.editModal.namePlaceholder')"
                   :disabled="isEditing"
+                  :aria-invalid="Boolean(editFieldErrors.name)"
+                  :aria-describedby="editFieldErrors.name ? 'edit-list-name-error' : undefined"
                   @input="clearEditFieldError('name')"
                 />
-                <p v-if="editFieldErrors.name" class="field-error-msg" role="alert">
+                <p v-if="editFieldErrors.name" id="edit-list-name-error" class="field-error-msg" role="alert">
                   {{ editFieldErrors.name }}
                 </p>
               </div>
@@ -513,7 +517,7 @@ function openShareModal(list: ListSummary) {
                 <span class="modal-title-icon">⚠️</span>
                 <h2 id="delete-dashboard-list-title">{{ t('dashboard.deleteModal.title') }}</h2>
               </div>
-              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeleting" @click="showDeleteModal = false">&times;</button>
+              <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeleting" @click="!isDeleting && (showDeleteModal = false)">&times;</button>
             </div>
 
             <div v-if="deleteError" class="alert alert-error mt-1" role="alert">

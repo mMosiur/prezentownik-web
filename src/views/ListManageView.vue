@@ -27,6 +27,7 @@ const showItemModal = ref(false)
 const editingItem = ref<Item | null>(null)
 const isSavingItem = ref(false)
 const itemFormError = ref('')
+const itemFieldErrors = ref<Record<string, string>>({})
 const itemForm = ref<{
   name: string
   description: string
@@ -78,6 +79,7 @@ function resetViewState() {
   editingItem.value = null
   isSavingItem.value = false
   itemFormError.value = ''
+  itemFieldErrors.value = {}
   itemForm.value = {
     name: '',
     description: '',
@@ -231,9 +233,19 @@ async function confirmDeleteList() {
   }
 }
 
+function clearItemFieldError(field: string) {
+  if (itemFieldErrors.value[field]) {
+    delete itemFieldErrors.value[field]
+  }
+  if (itemFormError.value) {
+    itemFormError.value = ''
+  }
+}
+
 function openAddItem() {
   editingItem.value = null
   itemFormError.value = ''
+  itemFieldErrors.value = {}
   itemForm.value = {
     name: '',
     description: '',
@@ -246,6 +258,7 @@ function openAddItem() {
 function openEditItem(item: Item) {
   editingItem.value = item
   itemFormError.value = ''
+  itemFieldErrors.value = {}
   itemForm.value = {
     name: item.name,
     description: item.description ?? '',
@@ -256,7 +269,9 @@ function openEditItem(item: Item) {
 }
 
 function setItemType(type: number) {
+  if (isSavingItem.value) return
   itemForm.value.type = type
+  clearItemFieldError('targetQuantity')
   if (type === 1 && (!itemForm.value.targetQuantity || itemForm.value.targetQuantity < 1)) {
     itemForm.value.targetQuantity = 2
   } else if (type === 0) {
@@ -265,11 +280,15 @@ function setItemType(type: number) {
 }
 
 function incrementQuantity() {
+  if (isSavingItem.value) return
+  clearItemFieldError('targetQuantity')
   const current = Number(itemForm.value.targetQuantity) || 1
   itemForm.value.targetQuantity = current + 1
 }
 
 function decrementQuantity() {
+  if (isSavingItem.value) return
+  clearItemFieldError('targetQuantity')
   const current = Number(itemForm.value.targetQuantity) || 1
   if (current > 1) {
     itemForm.value.targetQuantity = current - 1
@@ -280,13 +299,38 @@ async function saveItem() {
   if (isSavingItem.value) return
 
   itemFormError.value = ''
+  itemFieldErrors.value = {}
+
+  const trimmedName = itemForm.value.name.trim()
+  if (!trimmedName) {
+    itemFieldErrors.value.name = t('listManage.itemModal.nameRequired')
+  }
+
+  let targetQuantity: number | null = null
+  if (itemForm.value.type === 0) {
+    targetQuantity = 1
+  } else if (itemForm.value.type === 1) {
+    const qty = Number(itemForm.value.targetQuantity)
+    if (!Number.isInteger(qty) || qty < 1 || qty > 2_147_483_647) {
+      itemFieldErrors.value.targetQuantity = t('listManage.itemModal.quantityInvalid')
+    } else {
+      targetQuantity = qty
+    }
+  } else if (itemForm.value.type === 2) {
+    targetQuantity = null
+  }
+
+  if (Object.keys(itemFieldErrors.value).length > 0) {
+    return
+  }
+
   isSavingItem.value = true
   try {
     const payload: UpsertItemRequest = {
-      name: itemForm.value.name.trim(),
+      name: trimmedName,
       description: itemForm.value.description?.trim() || null,
       type: itemForm.value.type,
-      targetQuantity: itemForm.value.type === 1 ? Number(itemForm.value.targetQuantity) : (itemForm.value.type === 0 ? 1 : null)
+      targetQuantity
     }
     if (editingItem.value) {
       const result = await listStore.updateItem(listId.value, editingItem.value.id, payload)
@@ -300,7 +344,14 @@ async function saveItem() {
     showItemModal.value = false
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('listManage.itemModal.failed'))
-    itemFormError.value = parsed.message || Object.values(parsed.fieldErrors || {})[0] || t('listManage.itemModal.failed')
+    itemFormError.value = parsed.message
+    if (parsed.fieldErrors && Object.keys(parsed.fieldErrors).length > 0) {
+      itemFieldErrors.value = { ...parsed.fieldErrors }
+      const hasMatchingFieldError = !!(itemFieldErrors.value.name || itemFieldErrors.value.targetQuantity || itemFieldErrors.value.description)
+      if (!hasMatchingFieldError && !itemFormError.value) {
+        itemFormError.value = Object.values(parsed.fieldErrors)[0] || t('listManage.itemModal.failed')
+      }
+    }
   } finally {
     isSavingItem.value = false
   }
@@ -667,14 +718,14 @@ function extractUrl(text: string | null): string | null {
       <!-- Edit List Modal -->
       <Teleport to="body">
         <Transition name="modal-fade">
-          <div v-if="showEditListModal" class="modal-overlay" @click="showEditListModal = false">
+          <div v-if="showEditListModal" class="modal-overlay" @click="!isSavingList && (showEditListModal = false)">
             <div class="modal card card-elevated" @click.stop role="dialog" aria-modal="true" aria-labelledby="edit-list-title">
               <div class="modal-header">
                 <div class="modal-title-wrap">
                   <span class="modal-title-icon">✏️</span>
                   <h2 id="edit-list-title">{{ t('listManage.editListModal.title') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" @click="showEditListModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingList" @click="!isSavingList && (showEditListModal = false)">&times;</button>
               </div>
 
               <div v-if="listEditError" class="alert alert-error mt-1" role="alert">
@@ -692,9 +743,11 @@ function extractUrl(text: string | null): string | null {
                     required
                     :placeholder="t('listManage.editListModal.namePlaceholder')"
                     :disabled="isSavingList"
+                    :aria-invalid="Boolean(listEditFieldErrors.name)"
+                    :aria-describedby="listEditFieldErrors.name ? 'edit-list-name-error' : undefined"
                     @input="clearListFieldError('name')"
                   />
-                  <p v-if="listEditFieldErrors.name" class="field-error-msg" role="alert">
+                  <p v-if="listEditFieldErrors.name" id="edit-list-name-error" class="field-error-msg" role="alert">
                     {{ listEditFieldErrors.name }}
                   </p>
                 </div>
@@ -744,7 +797,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">🎁</span>
                   <h2 id="item-modal-title">{{ editingItem ? t('listManage.itemModal.titleEdit') : t('listManage.itemModal.titleAdd') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingItem" @click="showItemModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSavingItem" @click="!isSavingItem && (showItemModal = false)">&times;</button>
               </div>
 
               <div v-if="itemFormError" class="alert alert-error mt-1" role="alert">
@@ -752,7 +805,7 @@ function extractUrl(text: string | null): string | null {
               </div>
 
               <form @submit.prevent="saveItem" class="mt-2" novalidate>
-                <div class="form-group">
+                <div class="form-group" :class="{ 'has-error': !!itemFieldErrors.name }">
                   <label for="item-name">
                     {{ t('listManage.itemModal.nameLabel') }} <span class="required-mark">*</span>
                   </label>
@@ -762,10 +815,16 @@ function extractUrl(text: string | null): string | null {
                     required
                     :placeholder="t('listManage.itemModal.namePlaceholder')"
                     :disabled="isSavingItem"
+                    :aria-invalid="Boolean(itemFieldErrors.name)"
+                    :aria-describedby="itemFieldErrors.name ? 'item-name-error' : undefined"
+                    @input="clearItemFieldError('name')"
                   />
+                  <p v-if="itemFieldErrors.name" id="item-name-error" class="field-error-msg" role="alert">
+                    {{ itemFieldErrors.name }}
+                  </p>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" :class="{ 'has-error': !!itemFieldErrors.description }">
                   <label for="item-description">{{ t('listManage.itemModal.descriptionLabel') }}</label>
                   <textarea
                     id="item-description"
@@ -773,7 +832,13 @@ function extractUrl(text: string | null): string | null {
                     rows="3"
                     :placeholder="t('listManage.itemModal.descriptionPlaceholder')"
                     :disabled="isSavingItem"
+                    :aria-invalid="Boolean(itemFieldErrors.description)"
+                    :aria-describedby="itemFieldErrors.description ? 'item-description-error' : undefined"
+                    @input="clearItemFieldError('description')"
                   ></textarea>
+                  <p v-if="itemFieldErrors.description" id="item-description-error" class="field-error-msg" role="alert">
+                    {{ itemFieldErrors.description }}
+                  </p>
                 </div>
 
                 <!-- Segmented Type Selector -->
@@ -784,6 +849,7 @@ function extractUrl(text: string | null): string | null {
                       type="button"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 0 }"
+                      :disabled="isSavingItem"
                       @click="setItemType(0)"
                     >
                       <div class="type-choice-icon">🎁</div>
@@ -797,6 +863,7 @@ function extractUrl(text: string | null): string | null {
                       type="button"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 1 }"
+                      :disabled="isSavingItem"
                       @click="setItemType(1)"
                     >
                       <div class="type-choice-icon">🔢</div>
@@ -810,6 +877,7 @@ function extractUrl(text: string | null): string | null {
                       type="button"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 2 }"
+                      :disabled="isSavingItem"
                       @click="setItemType(2)"
                     >
                       <div class="type-choice-icon">♾️</div>
@@ -822,7 +890,7 @@ function extractUrl(text: string | null): string | null {
                 </div>
 
                 <!-- Target Quantity Stepper for Quantity Type -->
-                <div v-if="itemForm.type === 1" class="form-group mt-1">
+                <div v-if="itemForm.type === 1" class="form-group mt-1" :class="{ 'has-error': !!itemFieldErrors.targetQuantity }">
                   <label for="item-quantity">{{ t('listManage.itemModal.targetQuantityLabel') }}</label>
                   <div class="stepper-box">
                     <button
@@ -841,6 +909,9 @@ function extractUrl(text: string | null): string | null {
                       class="stepper-input"
                       required
                       :disabled="isSavingItem"
+                      :aria-invalid="Boolean(itemFieldErrors.targetQuantity)"
+                      :aria-describedby="itemFieldErrors.targetQuantity ? 'item-quantity-error' : undefined"
+                      @input="clearItemFieldError('targetQuantity')"
                     />
                     <button
                       type="button"
@@ -851,6 +922,9 @@ function extractUrl(text: string | null): string | null {
                       +
                     </button>
                   </div>
+                  <p v-if="itemFieldErrors.targetQuantity" id="item-quantity-error" class="field-error-msg" role="alert">
+                    {{ itemFieldErrors.targetQuantity }}
+                  </p>
                 </div>
 
                 <div class="modal-actions">
@@ -878,7 +952,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">⚠️</span>
                   <h2 id="delete-manage-list-title">{{ t('listManage.deleteListModal.title') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingList" @click="showDeleteListModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingList" @click="!isDeletingList && (showDeleteListModal = false)">&times;</button>
               </div>
 
               <div v-if="deleteListError" class="alert alert-error mt-1" role="alert">
@@ -937,7 +1011,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">⚠️</span>
                   <h2 id="delete-item-title">{{ t('listManage.deleteItemModal.title') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingItem" @click="showDeleteItemModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isDeletingItem" @click="!isDeletingItem && (showDeleteItemModal = false)">&times;</button>
               </div>
 
               <div v-if="deleteItemError" class="alert alert-error mt-1" role="alert">

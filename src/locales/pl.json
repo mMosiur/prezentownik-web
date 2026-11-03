@@ -318,6 +318,8 @@
       "failed": "Nie udało się zapisać prezentu.",
       "nameLabel": "Nazwa prezentu",
       "namePlaceholder": "Np. Ekspres do kawy",
+      "nameRequired": "Nazwa prezentu jest wymagana.",
+      "quantityInvalid": "Podaj dodatnią liczbę całkowitą.",
       "targetQuantityLabel": "Docelowa ilość",
       "titleAdd": "Dodaj nowy prezent",
       "titleEdit": "Edytuj prezent",

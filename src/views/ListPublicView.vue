@@ -159,6 +159,7 @@ function maxClaimable(item: PublicItem) {
 }
 
 function incrementClaimQuantity() {
+  quantityError.value = ''
   if (!selectedItem.value) return
   const max = maxClaimable(selectedItem.value)
   if (claimForm.value.quantityClaimed < max) {
@@ -167,6 +168,7 @@ function incrementClaimQuantity() {
 }
 
 function decrementClaimQuantity() {
+  quantityError.value = ''
   if (claimForm.value.quantityClaimed > 1) {
     claimForm.value.quantityClaimed--
   }
@@ -614,7 +616,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">🎁</span>
                   <h2 id="claim-modal-title">{{ t('listPublic.claimModal.title', { name: selectedItem.name }) }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSubmittingClaim" @click="showClaimModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isSubmittingClaim" @click="!isSubmittingClaim && (showClaimModal = false)">&times;</button>
               </div>
 
               <div v-if="error" class="alert alert-error mt-1" role="alert">
@@ -659,6 +661,7 @@ function extractUrl(text: string | null): string | null {
                       :aria-invalid="Boolean(quantityError)"
                       :aria-describedby="quantityError ? 'claim-quantity-error' : undefined"
                       :disabled="isSubmittingClaim"
+                      @input="quantityError = ''"
                     />
                     <button
                       type="button"
@@ -699,7 +702,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">⚠️</span>
                   <h2 id="over-target-title">{{ t('listPublic.overTargetModal.title') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isRemovingOverTargetClaim" @click="overTargetNotice = null">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isRemovingOverTargetClaim" @click="!isRemovingOverTargetClaim && (overTargetNotice = null)">&times;</button>
               </div>
 
               <div class="confirm-content mt-1">
@@ -744,7 +747,7 @@ function extractUrl(text: string | null): string | null {
                   <span class="modal-title-icon">⚠️</span>
                   <h2 id="unclaim-title">{{ t('listPublic.unclaimModal.title') }}</h2>
                 </div>
-                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isUnclaiming" @click="showUnclaimModal = false">&times;</button>
+                <button class="close-btn" :aria-label="t('common.actions.close')" :disabled="isUnclaiming" @click="!isUnclaiming && (showUnclaimModal = false)">&times;</button>
               </div>
 
               <div v-if="unclaimError" class="alert alert-error mt-1" role="alert">

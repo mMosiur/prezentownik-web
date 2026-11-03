@@ -318,6 +318,8 @@
       "failed": "Failed to save gift.",
       "nameLabel": "Gift name",
       "namePlaceholder": "e.g. Coffee maker",
+      "nameRequired": "Gift name is required.",
+      "quantityInvalid": "Enter a positive whole number.",
       "targetQuantityLabel": "Target quantity",
       "titleAdd": "Add new gift",
       "titleEdit": "Edit gift",
