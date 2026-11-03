@@ -227,9 +227,15 @@
     "emptySubtitle": "Create your first list to start collecting gift ideas.",
     "emptyTitle": "You don't have any lists yet",
     "listsCount": "{count} lists | {count} list | {count} lists",
+    "loadErrorDesc": "A connection or server error occurred. Please try again.",
+    "loadErrorSubtitle": "Could not retrieve lists",
+    "loadErrorTitle": "Failed to load gift lists",
     "loading": "Loading lists...",
     "newList": "New List",
     "noSearchResults": "No lists match your search",
+    "refreshFailed": "Failed to refresh gift lists. Please check your connection and try again.",
+    "refreshing": "Refreshing...",
+    "retry": "Try again",
     "searchPlaceholder": "Search lists by name or description...",
     "title": "My Gift Lists"
   },
@@ -319,6 +325,8 @@
       "unknown": "Unknown",
       "unlimited": "Unlimited"
     },
+    "loadErrorDesc": "A connection or server error occurred while loading list details.",
+    "loadErrorTitle": "Failed to load list details",
     "loading": "Loading list details...",
     "moveDown": "Move down",
     "moveUp": "Move up",
@@ -334,7 +342,8 @@
     "reorderFailed": "Failed to reorder gifts.",
     "refresh": "Refresh list",
     "refreshFailed": "Your change was saved, but the list may be out of date. Refresh to check for other changes.",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...",
+    "retry": "Try again"
   },
   "listPublic": {
     "anonymousClaimant": "Anonymous",
@@ -361,6 +370,8 @@
     "guideStep2": "Reserve without account",
     "guideStep3": "Keep the surprise",
     "guideTitle": "How this list works",
+    "loadErrorDesc": "A connection or server error occurred while loading this gift list.",
+    "loadErrorTitle": "Failed to load gift list",
     "loading": "Loading gift list...",
     "notFound": "Could not find this gift list. Please check if the link is correct.",
     "openLink": "View in store",
@@ -376,6 +387,7 @@
     "refresh": "Refresh list",
     "refreshFailed": "Your change was saved, but the list could not be refreshed. Refresh it to check the latest counts.",
     "refreshing": "Refreshing...",
+    "retry": "Try again",
     "selectGift": "Choose gift",
     "tokenPersistenceWarning": "Your reservation was saved, but this browser could not store its cancellation token. You can cancel it only in this session; it may not be possible after you close it.",
     "tokenPersistenceWarningBeforeClaim": "This browser cannot store cancellation tokens. If you reserve this gift, you may only be able to cancel it until you close this session.",

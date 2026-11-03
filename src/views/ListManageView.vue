@@ -21,6 +21,7 @@ const listId = computed(() => (route.params.listId as string) || '')
 const showShareModal = ref(false)
 const redirectedFromPublic = ref(route.query.fromPublic === '1')
 const isNotOwner = ref(false)
+const loadError = ref(false)
 
 const showItemModal = ref(false)
 const editingItem = ref<Item | null>(null)
@@ -72,6 +73,7 @@ let loadGeneration = 0
 function resetViewState() {
   showShareModal.value = false
   isNotOwner.value = false
+  loadError.value = false
   showItemModal.value = false
   editingItem.value = null
   isSavingItem.value = false
@@ -119,8 +121,14 @@ async function loadListData(id: string) {
     if (currentGen !== loadGeneration) return
     if (axios.isAxiosError(err) && [401, 403, 404].includes(err.response?.status ?? 0)) {
       isNotOwner.value = true
+    } else {
+      loadError.value = true
     }
   }
+}
+
+function retryLoadListData() {
+  loadListData(listId.value)
 }
 
 watch(
@@ -987,9 +995,9 @@ function extractUrl(text: string | null): string | null {
     </div>
 
     <!-- Not owner notice -->
-    <div v-else-if="isNotOwner" class="not-owner-card card mt-2 text-center">
+    <div v-else-if="isNotOwner" class="not-owner-card card mt-2 text-center" role="region" aria-labelledby="not-owner-title">
       <div class="not-owner-icon">🔒</div>
-      <h2>{{ t('listManage.notOwner.title') }}</h2>
+      <h2 id="not-owner-title">{{ t('listManage.notOwner.title') }}</h2>
       <p class="not-owner-desc mt-1">
         {{ t('listManage.notOwner.desc') }}
       </p>
@@ -999,6 +1007,24 @@ function extractUrl(text: string | null): string | null {
         </RouterLink>
         <RouterLink :to="{ name: 'list-public', params: { listId } }" class="btn">
           {{ t('listManage.notOwner.viewAsGuest') }}
+        </RouterLink>
+      </div>
+    </div>
+
+    <!-- Transient Load Error State (5xx / network error) -->
+    <div v-else-if="loadError" class="load-error-card card mt-2 text-center" role="alert">
+      <div class="error-icon">⚠️</div>
+      <h2 class="mt-1">{{ t('listManage.loadErrorTitle') }}</h2>
+      <p class="error-desc mt-1">
+        {{ t('listManage.loadErrorDesc') }}
+      </p>
+      <div class="error-actions mt-2">
+        <button type="button" @click="retryLoadListData" class="btn" :disabled="listStore.isLoading">
+          <span v-if="listStore.isLoading" class="spinner spinner-sm" aria-hidden="true"></span>
+          <span>{{ t('listManage.retry') }}</span>
+        </button>
+        <RouterLink :to="{ name: 'dashboard' }" class="btn btn-outline">
+          {{ t('listManage.backToDashboard') }}
         </RouterLink>
       </div>
     </div>
@@ -1415,26 +1441,37 @@ function extractUrl(text: string | null): string | null {
   margin: 0;
 }
 
-/* Not Owner Card */
-.not-owner-card {
+/* Not Owner & Load Error Cards */
+.not-owner-card,
+.load-error-card {
   padding: 3.5rem 2rem;
   max-width: 580px;
   margin: 2rem auto 0;
 }
 
-.not-owner-icon {
+.load-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.not-owner-icon,
+.error-icon {
   font-size: 3.5rem;
   margin-bottom: 1rem;
 }
 
-.not-owner-desc {
+.not-owner-desc,
+.error-desc {
   color: var(--color-text-muted);
 }
 
-.not-owner-actions {
+.not-owner-actions,
+.error-actions {
   display: flex;
   justify-content: center;
   gap: 0.75rem;
+  flex-wrap: wrap;
 }
 
 /* Modals */

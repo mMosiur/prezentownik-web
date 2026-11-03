@@ -38,8 +38,19 @@ const isDeleting = ref(false)
 const showShareModal = ref(false)
 const listToShare = ref<ListSummary | null>(null)
 
+const loadError = ref(false)
+
+async function loadDashboardLists() {
+  loadError.value = false
+  try {
+    await listStore.fetchLists()
+  } catch {
+    loadError.value = true
+  }
+}
+
 onMounted(async () => {
-  await listStore.fetchLists()
+  await loadDashboardLists()
 })
 
 useEscapeKey(() => {
@@ -216,8 +227,16 @@ function openShareModal(list: ListSummary) {
             <span v-else>{{ t('dashboard.title') }}</span>
           </h1>
           <p class="hero-subtitle">
-            <span class="count-badge">{{ listStore.lists.length }}</span>
-            <span>{{ listStore.lists.length === 1 ? 'aktywna lista' : 'aktywne listy' }}</span>
+            <template v-if="loadError && listStore.lists.length === 0">
+              <span class="hero-error-indicator">{{ t('dashboard.loadErrorSubtitle') }}</span>
+            </template>
+            <template v-else-if="listStore.isLoading && listStore.lists.length === 0">
+              <span>{{ t('dashboard.loading') }}</span>
+            </template>
+            <template v-else>
+              <span class="count-badge">{{ listStore.lists.length }}</span>
+              <span>{{ listStore.lists.length === 1 ? 'aktywna lista' : 'aktywne listy' }}</span>
+            </template>
           </p>
         </div>
       </div>
@@ -230,6 +249,15 @@ function openShareModal(list: ListSummary) {
           <span>{{ t('dashboard.newList') }}</span>
         </button>
       </div>
+    </div>
+
+    <!-- Refresh error warning when lists were already loaded -->
+    <div v-if="loadError && listStore.lists.length > 0" class="alert alert-warning mt-2 refresh-error-banner" role="status">
+      <span>{{ t('dashboard.refreshFailed') }}</span>
+      <button type="button" class="btn btn-sm btn-outline" :disabled="listStore.isLoading" @click="loadDashboardLists">
+        <span v-if="listStore.isLoading" class="spinner spinner-sm" aria-hidden="true"></span>
+        <span>{{ listStore.isLoading ? t('dashboard.refreshing') : t('dashboard.retry') }}</span>
+      </button>
     </div>
 
     <!-- Search & Filters Toolbar (shown if lists exist) -->
@@ -262,6 +290,17 @@ function openShareModal(list: ListSummary) {
     <div v-if="listStore.isLoading && listStore.lists.length === 0" class="loading-state card text-center mt-2" aria-live="polite" aria-busy="true">
       <span class="spinner spinner-lg spinner-accent" aria-hidden="true"></span>
       <p class="loading-text">{{ t('dashboard.loading') }}</p>
+    </div>
+
+    <!-- Load Error State (Initial fetch failed, lists is empty) -->
+    <div v-else-if="loadError && listStore.lists.length === 0" class="error-state card text-center mt-2" role="alert">
+      <div class="error-icon">⚠️</div>
+      <h2>{{ t('dashboard.loadErrorTitle') }}</h2>
+      <p class="error-desc mt-1">{{ t('dashboard.loadErrorDesc') }}</p>
+      <button @click="loadDashboardLists" class="btn btn-outline mt-2" :disabled="listStore.isLoading">
+        <span v-if="listStore.isLoading" class="spinner spinner-sm" aria-hidden="true"></span>
+        <span>{{ t('dashboard.retry') }}</span>
+      </button>
     </div>
     
     <!-- Empty State (No lists created yet) -->
@@ -583,6 +622,10 @@ function openShareModal(list: ListSummary) {
   color: var(--color-text-muted);
 }
 
+.hero-error-indicator {
+  color: var(--color-error, #e03131);
+}
+
 .count-badge {
   display: inline-flex;
   align-items: center;
@@ -741,7 +784,32 @@ function openShareModal(list: ListSummary) {
   font-size: 0.85rem;
 }
 
-/* Empty States */
+.refresh-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Empty States & Error States */
+.error-state {
+  padding: 3.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+}
+
+.error-desc {
+  max-width: 440px;
+  color: var(--color-text-muted);
+}
+
 .empty-state {
   padding: 3.5rem 2rem;
   display: flex;

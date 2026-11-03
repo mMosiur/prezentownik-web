@@ -18,7 +18,8 @@ const toast = useToast()
 const listId = computed(() => (route.params.listId as string) || '')
 
 const isCheckingOwnership = ref(true)
-const loadError = ref(false)
+const isNotFound = ref(false)
+const fetchError = ref(false)
 const isGuideExpanded = ref(false)
 
 const showClaimModal = ref(false)
@@ -54,7 +55,8 @@ let loadGeneration = 0
 
 function resetViewState() {
   isCheckingOwnership.value = true
-  loadError.value = false
+  isNotFound.value = false
+  fetchError.value = false
   showClaimModal.value = false
   selectedItem.value = null
   claimForm.value = {
@@ -95,9 +97,17 @@ async function loadPublicListData(id: string) {
       await router.replace({ name: 'list-manage', params: { listId: id }, query: { fromPublic: '1' } })
       return
     }
-    loadError.value = true
+    if (axios.isAxiosError(err) && (err.response?.status === 404 || err.response?.status === 410)) {
+      isNotFound.value = true
+    } else {
+      fetchError.value = true
+    }
     isCheckingOwnership.value = false
   }
+}
+
+function retryLoadPublicList() {
+  loadPublicListData(listId.value)
 }
 
 watch(
@@ -714,13 +724,29 @@ function extractUrl(text: string | null): string | null {
       </Teleport>
     </div>
 
-    <!-- Error State -->
-    <div v-else-if="loadError" class="text-center card mt-2 not-found-card">
+    <!-- Not Found State (404) -->
+    <div v-else-if="isNotFound" class="text-center card mt-2 not-found-card" role="region" aria-labelledby="not-found-title">
       <span class="not-found-emoji">🔍</span>
-      <h2 class="mt-1">{{ t('listPublic.notFound') }}</h2>
+      <h2 id="not-found-title" class="mt-1">{{ t('listPublic.notFound') }}</h2>
       <RouterLink :to="{ name: 'home' }" class="btn btn-outline mt-2">
         {{ t('common.actions.back') }}
       </RouterLink>
+    </div>
+
+    <!-- Transient Load Error State (5xx / network error) -->
+    <div v-else-if="fetchError" class="text-center card mt-2 load-error-card" role="alert">
+      <div class="error-icon">⚠️</div>
+      <h2 class="mt-1">{{ t('listPublic.loadErrorTitle') }}</h2>
+      <p class="error-desc mt-1">{{ t('listPublic.loadErrorDesc') }}</p>
+      <div class="error-actions mt-2">
+        <button type="button" @click="retryLoadPublicList" class="btn" :disabled="claimStore.isLoading">
+          <span v-if="claimStore.isLoading" class="spinner spinner-sm" aria-hidden="true"></span>
+          <span>{{ t('listPublic.retry') }}</span>
+        </button>
+        <RouterLink :to="{ name: 'home' }" class="btn btn-outline">
+          {{ t('common.actions.back') }}
+        </RouterLink>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -1285,12 +1311,36 @@ function extractUrl(text: string | null): string | null {
   transform: scale(0.95) translateY(10px);
 }
 
-.not-found-card {
+.not-found-card,
+.load-error-card {
   padding: 3.5rem 2rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.not-found-emoji {
+.load-error-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.not-found-emoji,
+.error-icon {
   font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.error-desc {
+  color: var(--color-text-muted);
+  max-width: 440px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 650px) {

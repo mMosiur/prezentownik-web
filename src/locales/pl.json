@@ -227,9 +227,15 @@
     "emptySubtitle": "Stwórz swoją pierwszą listę, aby zacząć zbierać pomysły na prezenty.",
     "emptyTitle": "Nie masz jeszcze żadnych list",
     "listsCount": "{count} list | {count} lista | {count} listy",
+    "loadErrorDesc": "Wystąpił problem z połączeniem lub serwerem. Spróbuj ponownie załadować swoje listy.",
+    "loadErrorSubtitle": "Nie udało się pobrać list",
+    "loadErrorTitle": "Nie udało się załadować list",
     "loading": "Ładowanie list...",
     "newList": "Nowa Lista",
     "noSearchResults": "Brak list pasujących do wyszukiwania",
+    "refreshFailed": "Nie udało się odświeżyć list. Sprawdź połączenie i spróbuj ponownie.",
+    "refreshing": "Odświeżanie...",
+    "retry": "Spróbuj ponownie",
     "searchPlaceholder": "Szukaj listy po nazwie lub opisie...",
     "title": "Moje Listy Prezentów"
   },
@@ -319,6 +325,8 @@
       "unknown": "Nieznany",
       "unlimited": "Bez limitu"
     },
+    "loadErrorDesc": "Wystąpił problem z połączeniem lub serwerem podczas ładowania szczegółów listy.",
+    "loadErrorTitle": "Nie udało się załadować listy",
     "loading": "Ładowanie szczegółów listy...",
     "moveDown": "Przesuń w dół",
     "moveUp": "Przesuń w górę",
@@ -334,7 +342,8 @@
     "reorderFailed": "Nie udało się zmienić kolejności prezentów.",
     "refresh": "Odśwież listę",
     "refreshFailed": "Zmiana została zapisana, ale lista może być nieaktualna. Odśwież ją, aby sprawdzić pozostałe zmiany.",
-    "refreshing": "Odświeżanie..."
+    "refreshing": "Odświeżanie...",
+    "retry": "Spróbuj ponownie"
   },
   "listPublic": {
     "anonymousClaimant": "Anonim",
@@ -361,6 +370,8 @@
     "guideStep2": "Zarezerwuj bez konta",
     "guideStep3": "Zachowaj niespodziankę",
     "guideTitle": "Jak działa ta lista?",
+    "loadErrorDesc": "Wystąpił problem z połączeniem lub serwerem podczas ładowania tej listy prezentów.",
+    "loadErrorTitle": "Nie udało się pobrać listy",
     "loading": "Ładowanie listy prezentowej...",
     "notFound": "Nie udało się znaleźć tej listy prezentowej. Sprawdź, czy link jest poprawny.",
     "openLink": "Zobacz w sklepie",
@@ -376,6 +387,7 @@
     "refresh": "Odśwież listę",
     "refreshFailed": "Zmiana została zapisana, ale nie udało się odświeżyć listy. Odśwież ją, aby sprawdzić najnowsze dane.",
     "refreshing": "Odświeżanie...",
+    "retry": "Spróbuj ponownie",
     "selectGift": "Wybierz prezent",
     "tokenPersistenceWarning": "Rezerwacja została zapisana, ale przeglądarka nie mogła zapamiętać tokenu anulowania. Możesz anulować ją tylko w tej sesji; po jej zamknięciu może to nie być możliwe.",
     "tokenPersistenceWarningBeforeClaim": "Przeglądarka nie może zapamiętać tokenu anulowania. Jeśli zarezerwujesz prezent, anulowanie może być możliwe tylko do zamknięcia tej sesji.",
