@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -15,7 +15,7 @@ const router = useRouter()
 const claimStore = useClaimStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const listId = route.params.listId as string
+const listId = computed(() => (route.params.listId as string) || '')
 
 const isCheckingOwnership = ref(true)
 const loadError = ref(false)
@@ -50,19 +50,63 @@ const itemToUnclaim = ref<PublicItem | null>(null)
 const unclaimError = ref('')
 const isUnclaiming = ref(false)
 
-onMounted(async () => {
+let loadGeneration = 0
+
+function resetViewState() {
+  isCheckingOwnership.value = true
+  loadError.value = false
+  showClaimModal.value = false
+  selectedItem.value = null
+  claimForm.value = {
+    claimantName: authStore.user?.displayName || '',
+    quantityClaimed: 1
+  }
+  error.value = ''
+  quantityError.value = ''
+  isSubmittingClaim.value = false
+  overTargetNotice.value = null
+  overTargetError.value = ''
+  isRemovingOverTargetClaim.value = false
+  mutationRefreshFailed.value = false
+  isRefreshing.value = false
+  confirmedLocallyClaimedItemIds.value = new Set()
+  confirmedLocallyUnclaimedItemIds.value = new Set()
+  showUnclaimModal.value = false
+  itemToUnclaim.value = null
+  unclaimError.value = ''
+  isUnclaiming.value = false
+  isGuideExpanded.value = false
+}
+
+async function loadPublicListData(id: string) {
+  const currentGen = ++loadGeneration
+  resetViewState()
+  if (!id) return
+
+  claimStore.clearCurrentPublicList()
+
   try {
-    await claimStore.fetchPublicList(listId)
+    await claimStore.fetchPublicList(id)
+    if (currentGen !== loadGeneration) return
     isCheckingOwnership.value = false
   } catch (err: unknown) {
+    if (currentGen !== loadGeneration) return
     if (axios.isAxiosError(err) && err.response?.status === 403) {
-      await router.replace({ name: 'list-manage', params: { listId }, query: { fromPublic: '1' } })
+      await router.replace({ name: 'list-manage', params: { listId: id }, query: { fromPublic: '1' } })
       return
     }
     loadError.value = true
     isCheckingOwnership.value = false
   }
-})
+}
+
+watch(
+  () => route.params.listId,
+  (newId) => {
+    loadPublicListData(newId as string)
+  },
+  { immediate: true }
+)
 
 useEscapeKey(() => {
   if (showClaimModal.value && !isSubmittingClaim.value) showClaimModal.value = false
@@ -132,7 +176,7 @@ async function handleClaim() {
   isSubmittingClaim.value = true
   try {
     const claimedItem = selectedItem.value
-    const result = await claimStore.claimItem(listId, claimedItem.id, {
+    const result = await claimStore.claimItem(listId.value, claimedItem.id, {
       claimantName: claimForm.value.claimantName.trim() || null,
       quantityClaimed
     }, Boolean(authStore.user))
@@ -162,7 +206,7 @@ async function handleClaim() {
     if (err instanceof ClaimAlreadyExistsError || (axios.isAxiosError(err) && err.response?.status === 409)) {
       error.value = t('listPublic.claimModal.alreadyClaimed')
       try {
-        await claimStore.fetchPublicList(listId)
+        await claimStore.fetchPublicList(listId.value)
         confirmedLocallyClaimedItemIds.value = new Set()
         confirmedLocallyUnclaimedItemIds.value = new Set()
         mutationRefreshFailed.value = false
@@ -191,7 +235,7 @@ async function confirmUnclaim() {
   unclaimError.value = ''
   isUnclaiming.value = true
   try {
-    const result = await claimStore.unclaimItem(listId, itemToUnclaim.value.id)
+    const result = await claimStore.unclaimItem(listId.value, itemToUnclaim.value.id)
     const unclaimedItemId = itemToUnclaim.value.id
     const updatedClaimIds = new Set(confirmedLocallyClaimedItemIds.value)
     updatedClaimIds.delete(unclaimedItemId)
@@ -226,7 +270,7 @@ async function removeOverTargetClaim() {
   isRemovingOverTargetClaim.value = true
   try {
     const result = await claimStore.unclaimSpecificClaim(
-      listId,
+      listId.value,
       overTargetNotice.value.item.id,
       overTargetNotice.value.claimId,
       overTargetNotice.value.revocationToken,
@@ -263,7 +307,7 @@ async function refreshListAfterMutation() {
 
   isRefreshing.value = true
   try {
-    await claimStore.fetchPublicList(listId)
+    await claimStore.fetchPublicList(listId.value)
     mutationRefreshFailed.value = false
     confirmedLocallyClaimedItemIds.value = new Set()
     confirmedLocallyUnclaimedItemIds.value = new Set()

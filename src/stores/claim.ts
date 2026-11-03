@@ -29,6 +29,15 @@ export const useClaimStore = defineStore('claim', () => {
   const volatileRevocationTokens = new Map<string, Set<string>>()
   const pendingAnonymousClaims = new Set<string>()
 
+  let fetchPublicListCounter = 0
+  let activePublicListId: string | null = null
+
+  function clearCurrentPublicList() {
+    currentPublicList.value = null
+    activePublicListId = null
+    fetchPublicListCounter++
+  }
+
   function updateTokenPersistenceWarning() {
     tokenPersistenceWarning.value = Array.from(volatileRevocationTokens.values()).some(tokens => tokens.size > 0)
   }
@@ -247,16 +256,24 @@ export const useClaimStore = defineStore('claim', () => {
   }
 
   async function fetchPublicList(listId: string) {
+    activePublicListId = listId
+    const fetchId = ++fetchPublicListCounter
     isLoading.value = true
     try {
       const response = await client.get<PublicList>(`/lists/${listId}`)
+      if (fetchId !== fetchPublicListCounter || activePublicListId !== listId) {
+        return response.data
+      }
       currentPublicList.value = response.data
       // Sort items by orderNumber ascending
       if (currentPublicList.value.items) {
         currentPublicList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
       }
+      return response.data
     } finally {
-      isLoading.value = false
+      if (fetchId === fetchPublicListCounter) {
+        isLoading.value = false
+      }
     }
   }
 
@@ -275,7 +292,9 @@ export const useClaimStore = defineStore('claim', () => {
         }
 
         try {
-          await fetchPublicList(listId)
+          if (activePublicListId === listId) {
+            await fetchPublicList(listId)
+          }
           return {
             claimId: typeof response.data.claimId === 'string' ? response.data.claimId : null,
             revocationToken: response.data.revocationToken,
@@ -325,7 +344,9 @@ export const useClaimStore = defineStore('claim', () => {
     }
 
     try {
-      await fetchPublicList(listId)
+      if (activePublicListId === listId) {
+        await fetchPublicList(listId)
+      }
       return { refreshError: null }
     } catch (refreshError: unknown) {
       return { refreshError }
@@ -341,7 +362,9 @@ export const useClaimStore = defineStore('claim', () => {
     if (token) removeRevocationToken(itemId, token)
 
     try {
-      await fetchPublicList(listId)
+      if (activePublicListId === listId) {
+        await fetchPublicList(listId)
+      }
       return { refreshError: null }
     } catch (refreshError: unknown) {
       return { refreshError }
@@ -351,7 +374,7 @@ export const useClaimStore = defineStore('claim', () => {
   return {
     currentPublicList, isLoading, tokenPersistenceWarning,
     adoptionNeedsAttention, adoptionRequestFailed, isAdoptingStoredClaims,
-    fetchPublicList, claimItem, unclaimItem, unclaimSpecificClaim,
+    fetchPublicList, clearCurrentPublicList, claimItem, unclaimItem, unclaimSpecificClaim,
     getRevocationToken, getRevocationTokens, setRevocationToken, removeRevocationToken,
     getAllStoredRevocationTokens, adoptStoredClaims, canPersistRevocationTokens, retryPersistRevocationTokens
   }

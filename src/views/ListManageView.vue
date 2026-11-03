@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import axios from 'axios'
@@ -16,7 +16,7 @@ const router = useRouter()
 const listStore = useListStore()
 const authStore = useAuthStore()
 const toast = useToast()
-const listId = route.params.listId as string
+const listId = computed(() => (route.params.listId as string) || '')
 
 const showShareModal = ref(false)
 const redirectedFromPublic = ref(route.query.fromPublic === '1')
@@ -67,15 +67,69 @@ const reorderError = ref('')
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
-onMounted(async () => {
+let loadGeneration = 0
+
+function resetViewState() {
+  showShareModal.value = false
+  isNotOwner.value = false
+  showItemModal.value = false
+  editingItem.value = null
+  isSavingItem.value = false
+  itemFormError.value = ''
+  itemForm.value = {
+    name: '',
+    description: '',
+    type: 0,
+    targetQuantity: 1
+  }
+  showEditListModal.value = false
+  isSavingList.value = false
+  listEditError.value = ''
+  listEditFieldErrors.value = {}
+  listForm.value = {
+    name: '',
+    description: ''
+  }
+  showDeleteListModal.value = false
+  isDeletingList.value = false
+  deleteListError.value = ''
+  showDeleteItemModal.value = false
+  itemToDelete.value = null
+  isDeletingItem.value = false
+  deleteItemError.value = ''
+  mutationRefreshFailed.value = false
+  isRefreshingList.value = false
+  isReordering.value = false
+  reorderError.value = ''
+  draggedIndex.value = null
+  dragOverIndex.value = null
+}
+
+async function loadListData(id: string) {
+  const currentGen = ++loadGeneration
+  resetViewState()
+  redirectedFromPublic.value = route.query.fromPublic === '1'
+  if (!id) return
+
+  listStore.clearCurrentList()
+
   try {
-    await listStore.fetchListDetails(listId)
+    await listStore.fetchListDetails(id)
   } catch (err: unknown) {
+    if (currentGen !== loadGeneration) return
     if (axios.isAxiosError(err) && [401, 403, 404].includes(err.response?.status ?? 0)) {
       isNotOwner.value = true
     }
   }
-})
+}
+
+watch(
+  () => route.params.listId,
+  (newId) => {
+    loadListData(newId as string)
+  },
+  { immediate: true }
+)
 
 useEscapeKey(() => {
   if (showShareModal.value) showShareModal.value = false
@@ -87,7 +141,7 @@ useEscapeKey(() => {
 
 function dismissRedirectNotice() {
   redirectedFromPublic.value = false
-  router.replace({ name: 'list-manage', params: { listId } })
+  router.replace({ name: 'list-manage', params: { listId: listId.value } })
 }
 
 function openEditList() {
@@ -128,7 +182,7 @@ async function saveListDetails() {
       name: trimmedName,
       description: listForm.value.description?.trim() || null
     }
-    await listStore.updateList(listId, payload)
+    await listStore.updateList(listId.value, payload)
     toast.success(t('common.toasts.listUpdated'))
     showEditListModal.value = false
   } catch (err: unknown) {
@@ -157,7 +211,7 @@ async function confirmDeleteList() {
   deleteListError.value = ''
   isDeletingList.value = true
   try {
-    await listStore.deleteList(listId)
+    await listStore.deleteList(listId.value)
     toast.success(t('common.toasts.listDeleted'))
     showDeleteListModal.value = false
     router.push({ name: 'dashboard' })
@@ -227,11 +281,11 @@ async function saveItem() {
       targetQuantity: itemForm.value.type === 1 ? Number(itemForm.value.targetQuantity) : (itemForm.value.type === 0 ? 1 : null)
     }
     if (editingItem.value) {
-      const result = await listStore.updateItem(listId, editingItem.value.id, payload)
+      const result = await listStore.updateItem(listId.value, editingItem.value.id, payload)
       toast.success(t('common.toasts.itemUpdated'))
       mutationRefreshFailed.value = result.refreshError !== null
     } else {
-      const result = await listStore.addItem(listId, payload)
+      const result = await listStore.addItem(listId.value, payload)
       toast.success(t('common.toasts.itemAdded'))
       mutationRefreshFailed.value = result.refreshError !== null
     }
@@ -256,7 +310,7 @@ async function confirmDeleteItem() {
   deleteItemError.value = ''
   isDeletingItem.value = true
   try {
-    const result = await listStore.deleteItem(listId, itemToDelete.value.id)
+    const result = await listStore.deleteItem(listId.value, itemToDelete.value.id)
     toast.success(t('common.toasts.itemDeleted'))
     mutationRefreshFailed.value = result.refreshError !== null
     showDeleteItemModal.value = false
@@ -274,7 +328,7 @@ async function refreshListAfterMutation() {
 
   isRefreshingList.value = true
   try {
-    await listStore.fetchListDetails(listId)
+    await listStore.fetchListDetails(listId.value)
     mutationRefreshFailed.value = false
   } catch {
     mutationRefreshFailed.value = true
@@ -297,7 +351,7 @@ async function moveItem(index: number, direction: 'up' | 'down') {
     isReordering.value = true
     reorderError.value = ''
     try {
-      await listStore.reorderItems(listId, itemIds)
+      await listStore.reorderItems(listId.value, itemIds)
     } catch (err: unknown) {
       const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message
@@ -353,7 +407,7 @@ async function onDrop(event: DragEvent, targetIndex: number) {
     isReordering.value = true
     reorderError.value = ''
     try {
-      await listStore.reorderItems(listId, itemIds)
+      await listStore.reorderItems(listId.value, itemIds)
     } catch (err: unknown) {
       const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message

@@ -16,6 +16,15 @@ export const useListStore = defineStore('list', () => {
   const currentList = ref<ListDetails | null>(null)
   const isLoading = ref(false)
 
+  let fetchListDetailsCounter = 0
+  let activeListDetailsId: string | null = null
+
+  function clearCurrentList() {
+    currentList.value = null
+    activeListDetailsId = null
+    fetchListDetailsCounter++
+  }
+
   async function fetchLists() {
     isLoading.value = true
     try {
@@ -27,16 +36,24 @@ export const useListStore = defineStore('list', () => {
   }
 
   async function fetchListDetails(listId: string) {
+    activeListDetailsId = listId
+    const fetchId = ++fetchListDetailsCounter
     isLoading.value = true
     try {
       const response = await client.get<ListDetails>(`/user/lists/${listId}`)
+      if (fetchId !== fetchListDetailsCounter || activeListDetailsId !== listId) {
+        return response.data
+      }
       currentList.value = response.data
       // Sort items by orderNumber ascending
       if (currentList.value.items) {
         currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
       }
+      return response.data
     } finally {
-      isLoading.value = false
+      if (fetchId === fetchListDetailsCounter) {
+        isLoading.value = false
+      }
     }
   }
 
@@ -66,6 +83,9 @@ export const useListStore = defineStore('list', () => {
     if (currentList.value && currentList.value.id === listId) {
       currentList.value = null
     }
+    if (activeListDetailsId === listId) {
+      activeListDetailsId = null
+    }
   }
 
   async function addItem(listId: string, item: UpsertItemRequest) {
@@ -76,10 +96,12 @@ export const useListStore = defineStore('list', () => {
     }
 
     let refreshError: unknown = null
-    try {
-      await fetchListDetails(listId)
-    } catch (err: unknown) {
-      refreshError = err
+    if (activeListDetailsId === listId) {
+      try {
+        await fetchListDetails(listId)
+      } catch (err: unknown) {
+        refreshError = err
+      }
     }
     return { item: response.data, refreshError }
   }
@@ -97,10 +119,12 @@ export const useListStore = defineStore('list', () => {
     }
 
     let refreshError: unknown = null
-    try {
-      await fetchListDetails(listId)
-    } catch (err: unknown) {
-      refreshError = err
+    if (activeListDetailsId === listId) {
+      try {
+        await fetchListDetails(listId)
+      } catch (err: unknown) {
+        refreshError = err
+      }
     }
     return { item: response.data, refreshError }
   }
@@ -112,17 +136,19 @@ export const useListStore = defineStore('list', () => {
     }
 
     let refreshError: unknown = null
-    try {
-      await fetchListDetails(listId)
-    } catch (err: unknown) {
-      refreshError = err
+    if (activeListDetailsId === listId) {
+      try {
+        await fetchListDetails(listId)
+      } catch (err: unknown) {
+        refreshError = err
+      }
     }
     return { refreshError }
   }
 
   async function reorderItems(listId: string, itemIds: string[]) {
-    const previousItems = currentList.value?.items ? [...currentList.value.items] : null
-    if (currentList.value?.items) {
+    const previousItems = currentList.value?.id === listId && currentList.value.items ? [...currentList.value.items] : null
+    if (currentList.value?.id === listId && currentList.value.items) {
       const itemsMap = new Map(currentList.value.items.map(i => [i.id, i]))
       const reordered: Item[] = []
       for (let i = 0; i < itemIds.length; i++) {
@@ -139,13 +165,15 @@ export const useListStore = defineStore('list', () => {
 
     try {
       const response = await client.put<ListDetails>(`/user/lists/${listId}/items/reorder`, { itemIds })
-      currentList.value = response.data
-      if (currentList.value.items) {
-        currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+      if (currentList.value?.id === listId && activeListDetailsId === listId) {
+        currentList.value = response.data
+        if (currentList.value.items) {
+          currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+        }
       }
       return response.data
     } catch (err) {
-      if (previousItems && currentList.value) {
+      if (previousItems && currentList.value?.id === listId) {
         currentList.value.items = previousItems
       }
       throw err
@@ -154,7 +182,7 @@ export const useListStore = defineStore('list', () => {
 
   return { 
     lists, currentList, isLoading, 
-    fetchLists, fetchListDetails, 
+    fetchLists, fetchListDetails, clearCurrentList,
     createList, updateList, deleteList,
     addItem, updateItem, deleteItem,
     reorderItems
