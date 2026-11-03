@@ -9,7 +9,7 @@ const { t } = useI18n()
 const authStore = useAuthStore()
 const route = useRoute()
 
-const email = ref(typeof route.query.email === 'string' ? route.query.email : '')
+const email = ref(typeof route.query.email === 'string' ? route.query.email : (authStore.user?.email || ''))
 const isSubmitting = ref(false)
 const isSubmitted = ref(false)
 
@@ -181,7 +181,12 @@ async function handleSubmit() {
       </template>
 
       <div class="auth-footer text-center mt-2">
-        <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.forgotPassword.backToLogin') }}</RouterLink>
+        <RouterLink v-if="authStore.isAuthenticated" :to="{ name: 'dashboard' }" class="auth-link">
+          {{ t('auth.resetPassword.goToDashboard') }}
+        </RouterLink>
+        <RouterLink v-else :to="{ name: 'login', query: email ? { email } : {} }" class="auth-link">
+          {{ t('auth.forgotPassword.backToLogin') }}
+        </RouterLink>
       </div>
     </div>
   </div>

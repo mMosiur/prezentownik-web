@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
@@ -18,11 +18,22 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const isSubmitting = ref(false)
 const isSubmitted = ref(false)
+const isLoggingOut = ref(false)
 const linkInvalid = ref(false)
 const invalidToken = ref(false)
 
 const generalError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
+
+const currentUserEmail = computed(() => authStore.user?.email || '')
+const isCurrentAccount = computed(() => {
+  if (!authStore.isAuthenticated || !currentUserEmail.value || !email.value) return false
+  return currentUserEmail.value.toLowerCase() === email.value.toLowerCase()
+})
+const isDifferentAccount = computed(() => {
+  if (!authStore.isAuthenticated || !currentUserEmail.value || !email.value) return false
+  return currentUserEmail.value.toLowerCase() !== email.value.toLowerCase()
+})
 
 onMounted(() => {
   const queryEmail = route.query.email
@@ -106,6 +117,42 @@ async function handleSubmit() {
   }
 }
 
+async function handleSwitchAccount() {
+  if (isLoggingOut.value) return
+  isLoggingOut.value = true
+  generalError.value = ''
+  try {
+    await authStore.logout()
+  } catch (err: unknown) {
+    const parsed = parseApiError(err, t('common.errors.unexpected'))
+    generalError.value = parsed.message || t('common.errors.unexpected')
+  } finally {
+    isLoggingOut.value = false
+  }
+}
+
+async function handleLogoutAndGoToLogin() {
+  if (authStore.isAuthenticated) {
+    isLoggingOut.value = true
+    try {
+      await authStore.logout()
+    } catch {
+      // Proceed even if logout failed
+    } finally {
+      isLoggingOut.value = false
+    }
+  }
+  router.push({ name: 'login', query: email.value ? { email: email.value } : {} })
+}
+
+function goToDashboard() {
+  router.push({ name: 'dashboard' })
+}
+
+function goToLogin() {
+  router.push({ name: 'login', query: email.value ? { email: email.value } : {} })
+}
+
 function hasInvalidTokenCode(err: unknown): boolean {
   if (typeof err !== 'object' || err === null || !('response' in err)) return false
 
@@ -122,10 +169,6 @@ function hasInvalidTokenCode(err: unknown): boolean {
 
   return typeof errors === 'object' && errors !== null &&
     Object.keys(errors).some(code => code.toLowerCase() === 'invalidtoken')
-}
-
-function goToLogin() {
-  router.push({ name: 'login' })
 }
 </script>
 
@@ -149,12 +192,20 @@ function goToLogin() {
       >
         <div class="alert-body">
           <span class="alert-desc">{{ t(invalidToken ? 'auth.resetPassword.invalidToken' : 'auth.resetPassword.invalidLink') }}</span>
-          <RouterLink
-            :to="{ name: 'forgot-password', query: email ? { email } : {} }"
-            class="auth-link"
-          >
-            {{ t('auth.resetPassword.requestNewLink') }}
-          </RouterLink>
+          <div class="action-links mt-1">
+            <RouterLink
+              :to="{ name: 'forgot-password', query: email ? { email } : {} }"
+              class="auth-link"
+            >
+              {{ t('auth.resetPassword.requestNewLink') }}
+            </RouterLink>
+            <template v-if="authStore.isAuthenticated">
+              <span class="divider" aria-hidden="true">·</span>
+              <RouterLink :to="{ name: 'dashboard' }" class="auth-link">
+                {{ t('auth.resetPassword.goToDashboard') }}
+              </RouterLink>
+            </template>
+          </div>
         </div>
       </div>
 
@@ -176,11 +227,66 @@ function goToLogin() {
         </div>
         <div class="alert-body">
           <span class="alert-title">{{ t('auth.resetPassword.successTitle') }}</span>
-          <span class="alert-desc">{{ t('auth.resetPassword.successDesc') }}</span>
+          <span class="alert-desc">
+            {{ isDifferentAccount ? t('auth.resetPassword.differentAccountSuccessDesc', { email }) : t('auth.resetPassword.successDesc') }}
+          </span>
         </div>
       </div>
 
       <template v-else>
+        <!-- Active session banner for different account -->
+        <div
+          v-if="isDifferentAccount"
+          class="alert alert-info mt-1"
+          role="status"
+        >
+          <div class="alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="alert-body">
+            <span class="alert-desc">
+              {{ t('auth.resetPassword.signedInAsDifferent', { currentEmail: currentUserEmail, resetEmail: email }) }}
+            </span>
+            <div class="mt-1">
+              <button
+                type="button"
+                class="btn btn-sm btn-outline"
+                :disabled="isLoggingOut || isSubmitting"
+                @click="handleSwitchAccount"
+              >
+                <span v-if="isLoggingOut" class="spinner spinner-xs mr-1" aria-hidden="true"></span>
+                {{ isLoggingOut ? t('auth.resetPassword.loggingOut') : t('auth.resetPassword.logoutAndSwitch') }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active session banner for same account -->
+        <div
+          v-else-if="isCurrentAccount"
+          class="alert alert-info mt-1"
+          role="status"
+        >
+          <div class="alert-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+              <path
+                fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </div>
+          <div class="alert-body">
+            <span class="alert-desc">{{ t('auth.resetPassword.signedInAsSame', { email }) }}</span>
+          </div>
+        </div>
+
         <!-- Error alert banner -->
         <div
           v-if="generalError"
@@ -369,10 +475,67 @@ function goToLogin() {
       </template>
 
       <div class="auth-footer text-center mt-2">
-        <button v-if="isSubmitted" @click="goToLogin" class="btn btn-block">
-          {{ t('auth.resetPassword.goToLogin') }}
-        </button>
-        <RouterLink v-else :to="{ name: 'login' }" class="auth-link">{{ t('auth.resetPassword.backToLogin') }}</RouterLink>
+        <template v-if="isSubmitted">
+          <div v-if="isDifferentAccount" class="submitted-actions">
+            <button
+              type="button"
+              class="btn btn-block"
+              :disabled="isLoggingOut"
+              @click="handleLogoutAndGoToLogin"
+            >
+              <span v-if="isLoggingOut" class="spinner spinner-sm mr-1" aria-hidden="true"></span>
+              {{ t('auth.resetPassword.logoutAndLoginAs', { email }) }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-block btn-outline mt-1"
+              @click="goToDashboard"
+            >
+              {{ t('auth.resetPassword.continueAsCurrent', { email: currentUserEmail }) }}
+            </button>
+          </div>
+          <div v-else-if="isCurrentAccount" class="submitted-actions">
+            <button
+              type="button"
+              class="btn btn-block"
+              @click="goToDashboard"
+            >
+              {{ t('auth.resetPassword.goToDashboard') }}
+            </button>
+            <button
+              type="button"
+              class="btn btn-block btn-outline mt-1"
+              :disabled="isLoggingOut"
+              @click="handleLogoutAndGoToLogin"
+            >
+              <span v-if="isLoggingOut" class="spinner spinner-sm mr-1" aria-hidden="true"></span>
+              {{ t('auth.resetPassword.reloginWithNewPassword') }}
+            </button>
+          </div>
+          <button v-else @click="goToLogin" class="btn btn-block">
+            {{ t('auth.resetPassword.goToLogin') }}
+          </button>
+        </template>
+        <template v-else>
+          <div v-if="authStore.isAuthenticated" class="auth-session-footer">
+            <RouterLink :to="{ name: 'dashboard' }" class="auth-link">
+              {{ t('auth.resetPassword.goToDashboard') }}
+            </RouterLink>
+            <span class="divider" aria-hidden="true">·</span>
+            <button
+              type="button"
+              class="btn-inline auth-link"
+              :disabled="isLoggingOut"
+              @click="handleSwitchAccount"
+            >
+              <span v-if="isLoggingOut" class="spinner spinner-xs mr-1" aria-hidden="true"></span>
+              {{ isLoggingOut ? t('auth.resetPassword.loggingOut') : t('auth.resetPassword.logoutAndSwitch') }}
+            </button>
+          </div>
+          <RouterLink v-else :to="{ name: 'login', query: email ? { email } : {} }" class="auth-link">
+            {{ t('auth.resetPassword.backToLogin') }}
+          </RouterLink>
+        </template>
       </div>
     </div>
   </div>
@@ -469,6 +632,54 @@ function goToLogin() {
   background-color: var(--color-danger-soft);
   border: 1px solid rgba(224, 49, 49, 0.3);
   color: var(--color-danger);
+}
+
+.alert-info {
+  background-color: var(--color-accent-soft);
+  border: 1px solid rgba(61, 109, 99, 0.3);
+  color: var(--color-accent-dark);
+}
+
+.action-links,
+.auth-session-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.divider {
+  color: var(--color-text-light);
+  user-select: none;
+}
+
+.btn-inline {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: var(--color-accent);
+}
+
+.btn-inline:hover {
+  text-decoration: underline;
+}
+
+.spinner-xs {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+
+.mr-1 {
+  margin-right: 0.25rem;
 }
 
 /* Input icons */
