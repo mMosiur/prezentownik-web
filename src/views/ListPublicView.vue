@@ -312,7 +312,7 @@ async function removeOverTargetClaim() {
   }
 }
 
-async function refreshListAfterMutation() {
+async function refreshList(isManual = false) {
   if (isRefreshing.value) return
 
   isRefreshing.value = true
@@ -322,11 +322,26 @@ async function refreshListAfterMutation() {
     confirmedLocallyClaimedItemIds.value = new Set()
     confirmedLocallyUnclaimedItemIds.value = new Set()
   } catch {
-    mutationRefreshFailed.value = true
+    if (isManual) {
+      toast.error(t('listPublic.manualRefreshFailed'))
+    } else {
+      mutationRefreshFailed.value = true
+    }
   } finally {
     isRefreshing.value = false
   }
 }
+
+const itemsCountLabel = computed(() => {
+  const count = claimStore.currentPublicList?.items?.length ?? 0
+  const mod10 = count % 10
+  const mod100 = count % 100
+  if (count === 1) return `${count} ${t('listPublic.countOne')}`
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
+    return `${count} ${t('listPublic.countFew')}`
+  }
+  return `${count} ${t('listPublic.countMany')}`
+})
 
 function isClaimedByMe(itemId: string) {
   if (confirmedLocallyUnclaimedItemIds.value.has(itemId)) return false
@@ -429,8 +444,9 @@ function extractUrl(text: string | null): string | null {
 
       <div v-if="mutationRefreshFailed" class="alert alert-warning mt-2" role="status">
         <span>{{ t('listPublic.refreshFailed') }}</span>
-        <button type="button" class="btn btn-sm btn-outline" :disabled="isRefreshing" @click="refreshListAfterMutation">
-          {{ isRefreshing ? t('listPublic.refreshing') : t('listPublic.refresh') }}
+        <button type="button" class="btn btn-sm btn-outline" :disabled="isRefreshing" @click="refreshList(false)">
+          <span v-if="isRefreshing" class="spinner spinner-sm" aria-hidden="true"></span>
+          <span>{{ isRefreshing ? t('listPublic.refreshing') : t('listPublic.refresh') }}</span>
         </button>
       </div>
 
@@ -439,6 +455,42 @@ function extractUrl(text: string | null): string | null {
         <button type="button" class="btn btn-sm btn-outline" @click="retryTokenPersistence">
           {{ t('listPublic.tokenPersistenceRetry') }}
         </button>
+      </div>
+
+      <!-- Public List Toolbar / Actions -->
+      <div class="public-toolbar mt-2">
+        <div class="items-count-wrap">
+          <span class="items-count-pill">
+            {{ itemsCountLabel }}
+          </span>
+        </div>
+        <div class="toolbar-actions">
+          <button
+            type="button"
+            class="btn btn-sm btn-outline btn-refresh"
+            :disabled="isRefreshing || claimStore.isLoading"
+            @click="refreshList(true)"
+            :title="t('listPublic.refresh')"
+            :aria-label="t('listPublic.refresh')"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              :class="{ 'spin-icon': isRefreshing }"
+              aria-hidden="true"
+            >
+              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
+            </svg>
+            <span>{{ isRefreshing ? t('listPublic.refreshing') : t('listPublic.refresh') }}</span>
+          </button>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -943,6 +995,45 @@ function extractUrl(text: string | null): string | null {
   max-height: 0;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+/* Public Toolbar */
+.public-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.25rem 0.25rem;
+}
+
+.items-count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.85rem;
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.spin-icon {
+  animation: spin 0.75s linear infinite;
 }
 
 /* Items Grid & Cards */
