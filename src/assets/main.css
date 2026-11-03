@@ -382,6 +382,7 @@
   margin-bottom: 0;
   padding: 2rem;
   max-height: 90vh;
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
@@ -580,6 +581,19 @@
 .mb-2 { margin-bottom: 2rem; }
 .gap-1 { gap: 0.5rem; }
 .gap-2 { gap: 1rem; }
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
 
 /* Responsive Adjustments: Tablet & Mobile */
 @media (max-width: 768px) {

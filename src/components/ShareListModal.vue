@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -16,7 +16,9 @@ const emit = defineEmits<{
   close: []
 }>()
 
-useEscapeKey(() => emit('close'))
+useFocusTrap(ref(true), {
+  onEscape: () => emit('close')
+})
 
 const shareUrl = computed(() => `${window.location.origin}${import.meta.env.BASE_URL}lists/${props.listId}`)
 const canNativeShare = typeof navigator !== 'undefined' && !!navigator.share

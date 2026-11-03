@@ -236,6 +236,11 @@
     },
     "emptySubtitle": "Stwórz swoją pierwszą listę, aby zacząć zbierać pomysły na prezenty.",
     "emptyTitle": "Nie masz jeszcze żadnych list",
+    "listActions": {
+      "deleteAria": "Usuń listę: {name}",
+      "manageAria": "Zarządzaj listą: {name}",
+      "shareAria": "Udostępnij listę: {name}"
+    },
     "listsCount": "{count} list | {count} lista | {count} listy",
     "loadErrorDesc": "Wystąpił problem z połączeniem lub serwerem. Spróbuj ponownie załadować swoje listy.",
     "loadErrorSubtitle": "Nie udało się pobrać list",
@@ -312,6 +317,13 @@
     "editListTooltip": "Edytuj dane listy",
     "emptySubtitle": "Dodaj pierwszy pomysł na prezent, aby bliscy wiedzieli, co sprawi Ci radość.",
     "emptyTitle": "Ta lista jest jeszcze pusta",
+    "itemActions": {
+      "deleteAria": "Usuń prezent: {name}",
+      "editAria": "Edytuj prezent: {name}",
+      "moveDownAria": "Przesuń prezent {name} niżej",
+      "moveUpAria": "Przesuń prezent {name} wyżej",
+      "reorderedAria": "Prezent {name} przesunięty na pozycję {pos} z {total}"
+    },
     "itemModal": {
       "descriptionLabel": "Opis / Link do sklepu",
       "descriptionPlaceholder": "Dodaj szczegóły, preferowany kolor lub wklej link...",
@@ -379,6 +391,10 @@
     "countOne": "prezent",
     "empty": "Ta lista jest jeszcze pusta.",
     "fullyClaimed": "W komplecie",
+    "itemActions": {
+      "claimAria": "Wybierz prezent: {name}",
+      "unclaimAria": "Zrezygnuj z rezerwacji prezentu: {name}"
+    },
     "guideHowItWorks": "Możesz zarezerwować dowolny prezent bez rejestracji, klikając przycisk „Wybierz prezent”. Dzięki temu inni goście nie kupią tego samego, a dla organizatora wszystko pozostaje niespodzianką aż do rozpakowania!",
     "guideLead": "Ta lista to zestaw podpowiedzi i inspiracji prezentowych. Pamiętaj, że najważniejsza jest Twoja obecność i nie czuj żadnej presji – prezenty nie są wymagane! Jeśli jednak chcesz coś podarować, poniżej znajdziesz rzeczy, które naprawdę się przydadzą i sprawią radość.",
     "guideStep1": "Przejrzyj pomysły",

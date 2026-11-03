@@ -6,7 +6,7 @@ import axios from 'axios'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
-import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useToast } from '@/composables/useToast'
 import ShareListModal from '@/components/ShareListModal.vue'
 
@@ -66,6 +66,7 @@ const isRefreshingList = ref(false)
 
 const isReordering = ref(false)
 const reorderError = ref('')
+const reorderAnnouncement = ref('')
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
 
@@ -141,12 +142,28 @@ watch(
   { immediate: true }
 )
 
-useEscapeKey(() => {
-  if (showShareModal.value) showShareModal.value = false
-  else if (showItemModal.value && !isSavingItem.value) showItemModal.value = false
-  else if (showEditListModal.value && !isSavingList.value) showEditListModal.value = false
-  else if (showDeleteListModal.value && !isDeletingList.value) showDeleteListModal.value = false
-  else if (showDeleteItemModal.value && !isDeletingItem.value) showDeleteItemModal.value = false
+useFocusTrap(showEditListModal, {
+  onEscape: () => {
+    if (!isSavingList.value) showEditListModal.value = false
+  }
+})
+
+useFocusTrap(showItemModal, {
+  onEscape: () => {
+    if (!isSavingItem.value) showItemModal.value = false
+  }
+})
+
+useFocusTrap(showDeleteListModal, {
+  onEscape: () => {
+    if (!isDeletingList.value) showDeleteListModal.value = false
+  }
+})
+
+useFocusTrap(showDeleteItemModal, {
+  onEscape: () => {
+    if (!isDeletingItem.value) showDeleteItemModal.value = false
+  }
 })
 
 function dismissRedirectNotice() {
@@ -403,6 +420,7 @@ async function moveItem(index: number, direction: 'up' | 'down') {
   const newIndex = direction === 'up' ? index - 1 : index + 1
   if (newIndex < 0 || newIndex >= items.length) return
 
+  const movedItem = items[index]!
   const itemIds = items.map(i => i.id)
   const [movedId] = itemIds.splice(index, 1)
   if (movedId) {
@@ -411,6 +429,11 @@ async function moveItem(index: number, direction: 'up' | 'down') {
     reorderError.value = ''
     try {
       await listStore.reorderItems(listId.value, itemIds)
+      reorderAnnouncement.value = t('listManage.itemActions.reorderedAria', {
+        name: movedItem.name,
+        pos: newIndex + 1,
+        total: items.length
+      })
     } catch (err: unknown) {
       const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message
@@ -459,6 +482,7 @@ async function onDrop(event: DragEvent, targetIndex: number) {
   const items = listStore.currentList?.items
   if (!items) return
 
+  const movedItem = items[fromIndex]!
   const itemIds = items.map(i => i.id)
   const [movedId] = itemIds.splice(fromIndex, 1)
   if (movedId) {
@@ -467,6 +491,11 @@ async function onDrop(event: DragEvent, targetIndex: number) {
     reorderError.value = ''
     try {
       await listStore.reorderItems(listId.value, itemIds)
+      reorderAnnouncement.value = t('listManage.itemActions.reorderedAria', {
+        name: movedItem.name,
+        pos: targetIndex + 1,
+        total: items.length
+      })
     } catch (err: unknown) {
       const parsed = parseApiError(err, t('listManage.reorderFailed'))
       reorderError.value = parsed.message
@@ -499,6 +528,11 @@ function extractUrl(text: string | null): string | null {
 
 <template>
   <div class="container list-manage-container mt-2">
+    <!-- Live region for accessibility announcements -->
+    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">
+      {{ reorderAnnouncement }}
+    </div>
+
     <!-- List details view (when loaded and current user is owner) -->
     <div v-if="listStore.currentList && listStore.currentList.id === listId">
       <!-- Navigation Bar -->
@@ -642,7 +676,7 @@ function extractUrl(text: string | null): string | null {
                 :disabled="index === 0 || isReordering"
                 class="order-btn"
                 :title="t('listManage.moveUp')"
-                :aria-label="t('listManage.moveUp')"
+                :aria-label="t('listManage.itemActions.moveUpAria', { name: item.name })"
               >
                 ▲
               </button>
@@ -652,7 +686,7 @@ function extractUrl(text: string | null): string | null {
                 :disabled="index === listStore.currentList.items.length - 1 || isReordering"
                 class="order-btn"
                 :title="t('listManage.moveDown')"
-                :aria-label="t('listManage.moveDown')"
+                :aria-label="t('listManage.itemActions.moveDownAria', { name: item.name })"
               >
                 ▼
               </button>
@@ -695,14 +729,23 @@ function extractUrl(text: string | null): string | null {
               
               <!-- Item Actions -->
               <div class="item-actions">
-                <button @click.stop="openEditItem(item)" class="btn btn-sm btn-outline item-btn">
+                <button
+                  @click.stop="openEditItem(item)"
+                  class="btn btn-sm btn-outline item-btn"
+                  :aria-label="t('listManage.itemActions.editAria', { name: item.name })"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                   </svg>
                   <span>{{ t('common.actions.edit') }}</span>
                 </button>
-                <button @click.stop="openDeleteItemModal(item)" class="btn btn-sm btn-outline btn-danger item-btn" :title="t('common.actions.delete')">
+                <button
+                  @click.stop="openDeleteItemModal(item)"
+                  class="btn btn-sm btn-outline btn-danger item-btn"
+                  :title="t('common.actions.delete')"
+                  :aria-label="t('listManage.itemActions.deleteAria', { name: item.name })"
+                >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <polyline points="3 6 5 6 21 6"></polyline>
                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -843,14 +886,22 @@ function extractUrl(text: string | null): string | null {
 
                 <!-- Segmented Type Selector -->
                 <div class="form-group">
-                  <label>{{ t('listManage.itemModal.typeLabel') }}</label>
-                  <div class="type-selector-grid">
+                  <label id="item-type-label">{{ t('listManage.itemModal.typeLabel') }}</label>
+                  <div
+                    class="type-selector-grid"
+                    role="radiogroup"
+                    aria-labelledby="item-type-label"
+                  >
                     <button
                       type="button"
+                      role="radio"
+                      :aria-checked="itemForm.type === 0"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 0 }"
                       :disabled="isSavingItem"
                       @click="setItemType(0)"
+                      @keydown.right.prevent="setItemType(1)"
+                      @keydown.down.prevent="setItemType(1)"
                     >
                       <div class="type-choice-icon">🎁</div>
                       <div class="type-choice-info">
@@ -861,10 +912,16 @@ function extractUrl(text: string | null): string | null {
 
                     <button
                       type="button"
+                      role="radio"
+                      :aria-checked="itemForm.type === 1"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 1 }"
                       :disabled="isSavingItem"
                       @click="setItemType(1)"
+                      @keydown.left.prevent="setItemType(0)"
+                      @keydown.up.prevent="setItemType(0)"
+                      @keydown.right.prevent="setItemType(2)"
+                      @keydown.down.prevent="setItemType(2)"
                     >
                       <div class="type-choice-icon">🔢</div>
                       <div class="type-choice-info">
@@ -875,10 +932,14 @@ function extractUrl(text: string | null): string | null {
 
                     <button
                       type="button"
+                      role="radio"
+                      :aria-checked="itemForm.type === 2"
                       class="type-choice-card"
                       :class="{ 'is-selected': itemForm.type === 2 }"
                       :disabled="isSavingItem"
                       @click="setItemType(2)"
+                      @keydown.left.prevent="setItemType(1)"
+                      @keydown.up.prevent="setItemType(1)"
                     >
                       <div class="type-choice-icon">♾️</div>
                       <div class="type-choice-info">

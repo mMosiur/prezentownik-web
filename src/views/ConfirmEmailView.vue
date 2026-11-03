@@ -44,7 +44,7 @@ onMounted(async () => {
   <div class="container container-narrow">
     <div class="auth-card card card-elevated">
       <!-- Confirming in progress -->
-      <div v-if="status === 'confirming'" class="auth-header text-center">
+      <div v-if="status === 'confirming'" class="auth-header text-center" role="status" aria-live="polite">
         <div class="auth-icon-badge">
           <span class="spinner spinner-accent spinner-md" aria-hidden="true"></span>
         </div>
@@ -53,7 +53,7 @@ onMounted(async () => {
       </div>
 
       <!-- Success -->
-      <div v-else-if="status === 'success'" class="auth-header text-center">
+      <div v-else-if="status === 'success'" class="auth-header text-center" role="status" aria-live="polite">
         <div class="auth-icon-badge badge-success">
           <span>🎉</span>
         </div>
@@ -65,7 +65,7 @@ onMounted(async () => {
       </div>
 
       <!-- Error -->
-      <div v-else class="auth-header text-center">
+      <div v-else class="auth-header text-center" role="alert">
         <div class="auth-icon-badge badge-error">
           <span>⚠️</span>
         </div>

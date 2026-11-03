@@ -236,6 +236,11 @@
     },
     "emptySubtitle": "Create your first list to start collecting gift ideas.",
     "emptyTitle": "You don't have any lists yet",
+    "listActions": {
+      "deleteAria": "Delete gift list: {name}",
+      "manageAria": "Manage gift list: {name}",
+      "shareAria": "Share gift list: {name}"
+    },
     "listsCount": "{count} lists | {count} list | {count} lists",
     "loadErrorDesc": "A connection or server error occurred. Please try again.",
     "loadErrorSubtitle": "Could not retrieve lists",
@@ -312,6 +317,13 @@
     "editListTooltip": "Edit list details",
     "emptySubtitle": "Add the first gift idea so loved ones know what will bring you joy.",
     "emptyTitle": "This list is currently empty",
+    "itemActions": {
+      "deleteAria": "Delete gift: {name}",
+      "editAria": "Edit gift: {name}",
+      "moveDownAria": "Move gift {name} down",
+      "moveUpAria": "Move gift {name} up",
+      "reorderedAria": "Gift {name} moved to position {pos} of {total}"
+    },
     "itemModal": {
       "descriptionLabel": "Description / Store link",
       "descriptionPlaceholder": "Add details, color preference, or paste link...",
@@ -379,6 +391,10 @@
     "countOne": "gift",
     "empty": "This list is currently empty.",
     "fullyClaimed": "Fully claimed",
+    "itemActions": {
+      "claimAria": "Choose gift: {name}",
+      "unclaimAria": "Cancel reservation for gift: {name}"
+    },
     "guideHowItWorks": "You can reserve any gift without creating an account by clicking \"Choose gift\". This lets other guests know what has already been chosen, while keeping it a complete surprise for the host until unwrapped!",
     "guideLead": "This list is a collection of gift ideas and inspiration. Your presence is what matters most and please don't feel pressured — gifts are never expected! However, if you would like to give something, here are ideas for things that are genuinely needed and appreciated.",
     "guideStep1": "Browse ideas",

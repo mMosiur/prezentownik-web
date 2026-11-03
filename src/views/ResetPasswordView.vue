@@ -334,8 +334,9 @@ function hasInvalidTokenCode(err: unknown): boolean {
               />
               <button
                 type="button"
-                class="password-toggle-btn"
                 tabindex="-1"
+                class="password-toggle-btn"
+                :aria-pressed="showPassword"
                 :aria-label="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :title="showPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :disabled="isSubmitting"
@@ -411,8 +412,9 @@ function hasInvalidTokenCode(err: unknown): boolean {
               />
               <button
                 type="button"
-                class="password-toggle-btn"
                 tabindex="-1"
+                class="password-toggle-btn"
+                :aria-pressed="showConfirmPassword"
                 :aria-label="showConfirmPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :title="showConfirmPassword ? t('common.actions.hidePassword') : t('common.actions.showPassword')"
                 :disabled="isSubmitting"
@@ -722,6 +724,12 @@ function hasInvalidTokenCode(err: unknown): boolean {
 }
 
 .password-toggle-btn:hover {
+  color: var(--color-heading);
+}
+
+.password-toggle-btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
   color: var(--color-heading);
 }
 

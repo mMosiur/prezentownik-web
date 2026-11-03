@@ -6,7 +6,7 @@ import axios from 'axios'
 import { ClaimAlreadyExistsError, useClaimStore, type PublicItem } from '@/stores/claim'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
-import { useEscapeKey } from '@/composables/useEscapeKey'
+import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
@@ -118,10 +118,22 @@ watch(
   { immediate: true }
 )
 
-useEscapeKey(() => {
-  if (showClaimModal.value && !isSubmittingClaim.value) showClaimModal.value = false
-  else if (showUnclaimModal.value && !isUnclaiming.value) showUnclaimModal.value = false
-  else if (overTargetNotice.value && !isRemovingOverTargetClaim.value) overTargetNotice.value = null
+useFocusTrap(showClaimModal, {
+  onEscape: () => {
+    if (!isSubmittingClaim.value) showClaimModal.value = false
+  }
+})
+
+useFocusTrap(computed(() => !!overTargetNotice.value), {
+  onEscape: () => {
+    if (!isRemovingOverTargetClaim.value) overTargetNotice.value = null
+  }
+})
+
+useFocusTrap(showUnclaimModal, {
+  onEscape: () => {
+    if (!isUnclaiming.value) showUnclaimModal.value = false
+  }
 })
 
 const ownerInitials = computed(() => {
@@ -583,7 +595,11 @@ function extractUrl(text: string | null): string | null {
             <!-- Item Action buttons -->
             <div class="item-actions">
               <div v-if="isClaimedByMe(item.id)" class="my-claim-action">
-                <button @click="openUnclaimModal(item)" class="btn btn-sm btn-outline btn-unclaim">
+                <button
+                  @click="openUnclaimModal(item)"
+                  class="btn btn-sm btn-outline btn-unclaim"
+                  :aria-label="t('listPublic.itemActions.unclaimAria', { name: item.name })"
+                >
                   {{ t('listPublic.unclaim') }}
                 </button>
               </div>
@@ -591,6 +607,7 @@ function extractUrl(text: string | null): string | null {
                 v-else
                 @click="openClaim(item)" 
                 class="btn btn-block btn-claim"
+                :aria-label="t('listPublic.itemActions.claimAria', { name: item.name })"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="20 12 20 22 4 22 4 12"></polyline>
