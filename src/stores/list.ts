@@ -17,12 +17,14 @@ export const useListStore = defineStore('list', () => {
   const isLoading = ref(false)
 
   let fetchListDetailsCounter = 0
+  let reorderCounter = 0
   let activeListDetailsId: string | null = null
 
   function clearCurrentList() {
     currentList.value = null
     activeListDetailsId = null
     fetchListDetailsCounter++
+    reorderCounter++
   }
 
   async function fetchLists() {
@@ -49,6 +51,7 @@ export const useListStore = defineStore('list', () => {
       if (currentList.value.items) {
         currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
       }
+      reorderCounter++
       return response.data
     } finally {
       if (fetchId === fetchListDetailsCounter) {
@@ -85,6 +88,8 @@ export const useListStore = defineStore('list', () => {
     }
     if (activeListDetailsId === listId) {
       activeListDetailsId = null
+      fetchListDetailsCounter++
+      reorderCounter++
     }
   }
 
@@ -147,8 +152,11 @@ export const useListStore = defineStore('list', () => {
   }
 
   async function reorderItems(listId: string, itemIds: string[]) {
-    const previousItems = currentList.value?.id === listId && currentList.value.items ? [...currentList.value.items] : null
-    if (currentList.value?.id === listId && currentList.value.items) {
+    const isCurrent = currentList.value?.id === listId && activeListDetailsId === listId
+    const previousItemIds = isCurrent && currentList.value?.items ? currentList.value.items.map(i => i.id) : []
+    const reorderId = ++reorderCounter
+
+    if (isCurrent && currentList.value?.items) {
       const itemsMap = new Map(currentList.value.items.map(i => [i.id, i]))
       const reordered: Item[] = []
       for (let i = 0; i < itemIds.length; i++) {
@@ -157,6 +165,18 @@ export const useListStore = defineStore('list', () => {
           const item = itemsMap.get(id)
           if (item) {
             reordered.push({ ...item, orderNumber: i + 1 })
+            itemsMap.delete(id)
+          }
+        }
+      }
+      if (itemsMap.size > 0) {
+        const remaining = Array.from(itemsMap.values()).sort(
+          (a, b) => Number(a.orderNumber) - Number(b.orderNumber)
+        )
+        for (let i = 0; i < remaining.length; i++) {
+          const rem = remaining[i]
+          if (rem) {
+            reordered.push({ ...rem, orderNumber: reordered.length + 1 })
           }
         }
       }
@@ -165,16 +185,63 @@ export const useListStore = defineStore('list', () => {
 
     try {
       const response = await client.put<ListDetails>(`/user/lists/${listId}/items/reorder`, { itemIds })
-      if (currentList.value?.id === listId && activeListDetailsId === listId) {
-        currentList.value = response.data
+      if (currentList.value?.id === listId && activeListDetailsId === listId && reorderId === reorderCounter) {
         if (currentList.value.items) {
-          currentList.value.items.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+          const serverItemsMap = new Map((response.data.items || []).map(i => [i.id, i]))
+          const reconciled: Item[] = []
+          for (const item of currentList.value.items) {
+            const serverItem = serverItemsMap.get(item.id)
+            if (serverItem) {
+              reconciled.push({
+                ...item,
+                orderNumber: serverItem.orderNumber
+              })
+            } else {
+              reconciled.push(item)
+            }
+          }
+          reconciled.sort((a, b) => Number(a.orderNumber) - Number(b.orderNumber))
+          currentList.value.items = reconciled
         }
       }
       return response.data
     } catch (err) {
-      if (previousItems && currentList.value?.id === listId) {
-        currentList.value.items = previousItems
+      if (
+        currentList.value?.id === listId &&
+        activeListDetailsId === listId &&
+        reorderId === reorderCounter &&
+        currentList.value.items &&
+        previousItemIds.length > 0
+      ) {
+        const currentMap = new Map(currentList.value.items.map(item => [item.id, item]))
+        const rolledBack: Item[] = []
+
+        for (const prevId of previousItemIds) {
+          const currentItem = currentMap.get(prevId)
+          if (currentItem) {
+            rolledBack.push(currentItem)
+            currentMap.delete(prevId)
+          }
+        }
+
+        if (currentMap.size > 0) {
+          const addedItems = Array.from(currentMap.values()).sort(
+            (a, b) => Number(a.orderNumber) - Number(b.orderNumber)
+          )
+          rolledBack.push(...addedItems)
+        }
+
+        for (let i = 0; i < rolledBack.length; i++) {
+          const item = rolledBack[i]
+          if (item) {
+            rolledBack[i] = {
+              ...item,
+              orderNumber: i + 1
+            }
+          }
+        }
+
+        currentList.value.items = rolledBack
       }
       throw err
     }
