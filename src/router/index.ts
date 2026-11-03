@@ -76,7 +76,11 @@ router.beforeEach(async (to, from) => {
   }
 
   if (to.meta.auth && !authStore.isAuthenticated) {
-    return { name: 'login', query: { redirect: to.fullPath } }
+    const query: Record<string, string> = { redirect: to.fullPath }
+    if (authStore.sessionExpired) {
+      query.sessionExpired = '1'
+    }
+    return { name: 'login', query }
   } else if (to.meta.guest && authStore.isAuthenticated) {
     return { name: 'dashboard' }
   } else {

@@ -175,8 +175,9 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.',
+      message: 'Twoja sesja wygasła lub nie jesteś zalogowany. Zaloguj się ponownie.',
       fieldErrors,
+      code: 'session-expired',
     }
   }
 

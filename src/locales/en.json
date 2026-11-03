@@ -78,6 +78,7 @@
       "rememberMe": "Remember me on this device",
       "resendEmailLink": "Resend",
       "resendEmailPrompt": "Didn't receive the confirmation email?",
+      "sessionExpired": "Your session has expired. Please log in again to continue.",
       "submit": "Log In",
       "submitting": "Logging in...",
       "subtitle": "Log in to manage your gift lists.",

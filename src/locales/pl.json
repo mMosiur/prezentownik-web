@@ -78,6 +78,7 @@
       "rememberMe": "Zapamiętaj mnie na tym urządzeniu",
       "resendEmailLink": "Wyślij ponownie",
       "resendEmailPrompt": "Nie otrzymałeś e-maila potwierdzającego?",
+      "sessionExpired": "Twoja sesja wygasła. Zaloguj się ponownie, aby kontynuować.",
       "submit": "Zaloguj się",
       "submitting": "Logowanie...",
       "subtitle": "Zaloguj się, aby zarządzać swoimi listami prezentowymi.",

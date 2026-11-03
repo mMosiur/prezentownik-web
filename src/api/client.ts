@@ -1,5 +1,6 @@
 import axios from 'axios'
 import type { components } from './schema'
+import { useAuthStore } from '@/stores/auth'
 
 export type HttpValidationProblemDetails = components['schemas']['HttpValidationProblemDetails']
 
@@ -44,7 +45,19 @@ client.interceptors.response.use(
       
       // Handle Unauthorized
       if (error.response.status === 401) {
-        // Redirect to login or refresh token
+        const url = error.config?.url || ''
+        const method = error.config?.method?.toLowerCase() || 'get'
+        const isLoginEndpoint = url.includes('/auth/login')
+        const isInitialMeLookup = url.includes('/auth/me') && method === 'get'
+
+        if (!isLoginEndpoint && !isInitialMeLookup) {
+          try {
+            const authStore = useAuthStore()
+            authStore.handleSessionExpired()
+          } catch {
+            // Pinia store might not be available in isolated environments
+          }
+        }
       }
     }
     return Promise.reject(error)

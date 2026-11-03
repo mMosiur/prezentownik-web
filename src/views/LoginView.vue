@@ -19,11 +19,16 @@ const isSubmitting = ref(false)
 const generalError = ref('')
 const fieldErrors = ref<Record<string, string>>({})
 const showRegisteredSuccess = ref(false)
+const showSessionExpiredNotice = ref(false)
 const isEmailNotConfirmed = ref(false)
 
 onMounted(() => {
   if (route.query.registered === 'true') {
     showRegisteredSuccess.value = true
+  }
+  if (route.query.sessionExpired === '1' || route.query.sessionExpired === 'true' || authStore.sessionExpired) {
+    showSessionExpiredNotice.value = true
+    authStore.clearSessionExpired()
   }
   if (typeof route.query.email === 'string' && !email.value) {
     email.value = route.query.email
@@ -154,6 +159,35 @@ async function handleSubmit() {
           class="alert-close"
           :aria-label="t('common.actions.closeNotification')"
           @click="showRegisteredSuccess = false"
+        >
+          &times;
+        </button>
+      </div>
+
+      <!-- Session Expired alert banner -->
+      <div
+        v-if="showSessionExpiredNotice"
+        class="alert alert-warning mt-1"
+        role="status"
+        aria-live="polite"
+      >
+        <div class="alert-icon" aria-hidden="true">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="20" height="20">
+            <path
+              fill-rule="evenodd"
+              d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+              clip-rule="evenodd"
+            />
+          </svg>
+        </div>
+        <div class="alert-body">
+          <span class="alert-desc">{{ t('auth.login.sessionExpired') }}</span>
+        </div>
+        <button
+          type="button"
+          class="alert-close"
+          :aria-label="t('common.actions.closeNotification')"
+          @click="showSessionExpiredNotice = false"
         >
           &times;
         </button>

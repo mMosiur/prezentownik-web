@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import axios from 'axios'
 import client from '@/api/client'
 import type { components } from '@/api/schema'
 import { useClaimStore } from '@/stores/claim'
@@ -25,15 +26,30 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<UserInfo | null>(null)
   const isAuthenticated = computed(() => !!user.value)
   const isLoading = ref(true)
+  const sessionCheckFailed = ref(false)
+  const sessionExpired = ref(false)
 
   async function fetchUser() {
     isLoading.value = true
+    sessionCheckFailed.value = false
     try {
       // Use /auth/me as verified in backend code
       const response = await client.get<UserInfo>('/auth/me')
       user.value = response.data
-    } catch (error) {
-      user.value = null
+      sessionExpired.value = false
+      sessionCheckFailed.value = false
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        if (user.value !== null) {
+          sessionExpired.value = true
+        }
+        user.value = null
+        sessionCheckFailed.value = false
+      } else {
+        // Transient network or 5xx server error.
+        // Preserve any previously loaded user session so a network blip does not silently discard it.
+        sessionCheckFailed.value = true
+      }
     } finally {
       isLoading.value = false
     }
@@ -44,6 +60,17 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function handleSessionExpired() {
+    if (user.value !== null) {
+      user.value = null
+      sessionExpired.value = true
+    }
+  }
+
+  function clearSessionExpired() {
+    sessionExpired.value = false
+  }
+
   async function updateUser(data: UpdateUserInfoRequest) {
     await client.put('/auth/me', data)
     if (user.value) {
@@ -52,6 +79,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function login(data: LoginRequest, options?: LoginOptions) {
+    sessionExpired.value = false
+    sessionCheckFailed.value = false
     const params = new URLSearchParams()
     const useCookies = options?.useCookies ?? true
     params.set('useCookies', String(useCookies))
@@ -95,13 +124,19 @@ export const useAuthStore = defineStore('auth', () => {
     // auth cookie - without it the request fails and the cookie survives.
     await client.post('/auth/logout', {})
     user.value = null
+    sessionExpired.value = false
+    sessionCheckFailed.value = false
   }
 
   return {
     user,
     isAuthenticated,
     isLoading,
+    sessionCheckFailed,
+    sessionExpired,
     fetchUser,
+    handleSessionExpired,
+    clearSessionExpired,
     updateUser,
     login,
     register,
