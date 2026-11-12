@@ -181,7 +181,7 @@ async function handleSubmit() {
       </template>
 
       <div class="auth-footer text-center mt-2">
-        <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.resendConfirmation.backToLogin') }}</RouterLink>
+        <RouterLink :to="{ name: 'login', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="auth-link">{{ t('auth.resendConfirmation.backToLogin') }}</RouterLink>
       </div>
     </div>
   </div>

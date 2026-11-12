@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { i18n } from '@/i18n'
 
 export interface ParsedApiError {
   message: string
@@ -11,24 +12,51 @@ export interface ParsedApiError {
   code?: string
 }
 
+function t(key: string, defaultVal?: string): string {
+  try {
+    const res = i18n.global.t(key)
+    if (res && res !== key) return res
+  } catch {
+    // fallback if i18n not yet initialized
+  }
+  return defaultVal || key
+}
+
 /**
  * Maps the raw `SignInResult.ToString()` values returned by the MapIdentityApi
- * `/login` endpoint (as the ProblemDetails `detail`) to a friendly Polish
+ * `/login` endpoint (as the ProblemDetails `detail`) to a friendly localized
  * message and a machine-readable `code` the UI can react to.
  */
-const signInResultMessages: Record<string, { message: string; code: string }> = {
-  notallowed: {
-    message: 'Twoje konto nie zostało jeszcze potwierdzone. Sprawdź swoją skrzynkę pocztową i kliknij link potwierdzający, aby móc się zalogować.',
-    code: 'email-not-confirmed',
-  },
-  lockedout: {
-    message: 'Twoje konto zostało tymczasowo zablokowane z powodu zbyt wielu nieudanych prób logowania. Spróbuj ponownie później.',
-    code: 'locked-out',
-  },
-  failed: {
-    message: 'Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.',
-    code: 'invalid-credentials',
-  },
+function getSignInResultMessage(detail: string): { message: string; code: string } | null {
+  const lower = detail.toLowerCase()
+  if (lower === 'notallowed') {
+    return {
+      message: t(
+        'common.errors.emailNotConfirmed',
+        'Twoje konto nie zostało jeszcze potwierdzone. Sprawdź swoją skrzynkę pocztową i kliknij link potwierdzający, aby móc się zalogować.'
+      ),
+      code: 'email-not-confirmed',
+    }
+  }
+  if (lower === 'lockedout') {
+    return {
+      message: t(
+        'common.errors.lockedOut',
+        'Twoje konto zostało tymczasowo zablokowane z powodu zbyt wielu nieudanych prób logowania. Spróbuj ponownie później.'
+      ),
+      code: 'locked-out',
+    }
+  }
+  if (lower === 'failed') {
+    return {
+      message: t(
+        'common.errors.invalidCredentials',
+        'Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.'
+      ),
+      code: 'invalid-credentials',
+    }
+  }
+  return null
 }
 
 /**
@@ -73,8 +101,8 @@ export const generalIdentityErrorCodes = new Set([
 ])
 
 /**
- * Returns the error message. The backend sends localized Polish error messages
- * when the Accept-Language: pl header is sent.
+ * Returns the error message. The backend sends localized error messages
+ * when the Accept-Language header is sent.
  */
 export function translateErrorMessage(message: string): string {
   return message || ''
@@ -84,24 +112,34 @@ export function translateErrorMessage(message: string): string {
  * Parses any API/Axios error into a user-friendly message and dictionary of field errors.
  * Uses localized error messages sent by the backend and places errors based on Identity error codes.
  */
-export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.'): ParsedApiError {
+export function parseApiError(err: unknown, defaultMessage?: string): ParsedApiError {
+  const fallbackMsg =
+    defaultMessage ||
+    t('common.errors.unexpected', 'Wystąpił nieoczekiwany błąd. Spróbuj ponownie.')
+
   if (!axios.isAxiosError(err)) {
     if (err instanceof Error && err.message) {
       return { message: err.message, fieldErrors: {} }
     }
-    return { message: defaultMessage, fieldErrors: {} }
+    return { message: fallbackMsg, fieldErrors: {} }
   }
 
   // Network offline / connection refused / timeout
   if (!err.response) {
     if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
       return {
-        message: 'Przekroczono limit czasu połączenia z serwerem. Sprawdź swoje połączenie internetowe i spróbuj ponownie.',
+        message: t(
+          'common.errors.timeout',
+          'Przekroczono limit czasu połączenia z serwerem. Sprawdź swoje połączenie internetowe i spróbuj ponownie.'
+        ),
         fieldErrors: {},
       }
     }
     return {
-      message: 'Nie można nawiązać połączenia z serwerem. Upewnij się, że masz połączenie z Internetem.',
+      message: t(
+        'common.errors.network',
+        'Nie można nawiązać połączenia z serwerem. Upewnij się, że masz połączenie z Internetem.'
+      ),
       fieldErrors: {},
     }
   }
@@ -119,7 +157,7 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
     const errorsObj = (data as any).errors
     if (errorsObj && typeof errorsObj === 'object') {
       for (const [key, val] of Object.entries(errorsObj)) {
-        const messages = Array.isArray(val) ? val : (typeof val === 'string' ? [val] : [])
+        const messages = Array.isArray(val) ? val : typeof val === 'string' ? [val] : []
         if (messages.length === 0) continue
 
         const formatted = messages.filter(Boolean).join(' ')
@@ -159,7 +197,7 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
   if (status === 401) {
     const detail = data?.detail || data?.message || data?.title
     if (detail && typeof detail === 'string') {
-      const known = signInResultMessages[detail.toLowerCase()]
+      const known = getSignInResultMessage(detail)
       if (known) {
         return {
           message: known.message,
@@ -175,7 +213,10 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Twoja sesja wygasła lub nie jesteś zalogowany. Zaloguj się ponownie.',
+      message: t(
+        'common.errors.sessionExpired',
+        'Twoja sesja wygasła lub nie jesteś zalogowany. Zaloguj się ponownie.'
+      ),
       fieldErrors,
       code: 'session-expired',
     }
@@ -201,7 +242,12 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
     }
 
     const detail = data?.detail || data?.message || data?.title
-    if (detail && typeof detail === 'string' && detail !== 'One or more validation errors occurred.' && detail !== 'Bad Request') {
+    if (
+      detail &&
+      typeof detail === 'string' &&
+      detail !== 'One or more validation errors occurred.' &&
+      detail !== 'Bad Request'
+    ) {
       return {
         message: detail,
         fieldErrors,
@@ -209,7 +255,10 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
     }
 
     return {
-      message: 'Wprowadzone dane są nieprawidłowe. Upewnij się, że wszystkie pola są wypełnione poprawnie.',
+      message: t(
+        'common.errors.badRequest',
+        'Wprowadzone dane są nieprawidłowe. Upewnij się, że wszystkie pola są wypełnione poprawnie.'
+      ),
       fieldErrors,
     }
   }
@@ -223,7 +272,7 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Brak uprawnień do wykonania tej operacji.',
+      message: t('common.errors.forbidden', 'Brak uprawnień do wykonania tej operacji.'),
       fieldErrors,
     }
   }
@@ -237,7 +286,7 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Żądany zasób nie został odnaleziony.',
+      message: t('common.errors.notFound', 'Żądany zasób nie został odnaleziony.'),
       fieldErrors,
     }
   }
@@ -251,7 +300,10 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Twoje konto zostało zablokowane. Spróbuj ponownie później.',
+      message: t(
+        'common.errors.accountLocked',
+        'Twoje konto zostało zablokowane. Spróbuj ponownie później.'
+      ),
       fieldErrors,
     }
   }
@@ -265,20 +317,26 @@ export function parseApiError(err: unknown, defaultMessage = 'Wystąpił nieocze
       }
     }
     return {
-      message: 'Zbyt wiele prób w krótkim czasie. Odczekaj chwilę przed kolejną próbą.',
+      message: t(
+        'common.errors.tooManyRequests',
+        'Zbyt wiele prób w krótkim czasie. Odczekaj chwilę przed kolejną próbą.'
+      ),
       fieldErrors,
     }
   }
 
   if (status >= 500) {
     return {
-      message: 'Wystąpił problem po stronie serwera. Pracujemy nad jego rozwiązaniem, spróbuj ponownie za chwilę.',
+      message: t(
+        'common.errors.serverError',
+        'Wystąpił problem po stronie serwera. Pracujemy nad jego rozwiązaniem, spróbuj ponownie za chwilę.'
+      ),
       fieldErrors,
     }
   }
 
   return {
-    message: defaultMessage,
+    message: fallbackMsg,
     fieldErrors,
   }
 }

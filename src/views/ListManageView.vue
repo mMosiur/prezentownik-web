@@ -6,11 +6,13 @@ import axios from 'axios'
 import { useListStore, type Item, type UpsertItemRequest, type UpdateListRequest } from '@/stores/list'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
+import { getPluralForm } from '@/utils/plural'
+import { extractUrl } from '@/utils/url'
 import { useFocusTrap } from '@/composables/useFocusTrap'
 import { useToast } from '@/composables/useToast'
 import ShareListModal from '@/components/ShareListModal.vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const listStore = useListStore()
@@ -519,11 +521,13 @@ function getItemTypeName(type: number) {
   }
 }
 
-function extractUrl(text: string | null): string | null {
-  if (!text) return null
-  const match = text.match(/(https?:\/\/[^\s]+)/i)
-  return match ? match[0] : null
-}
+const itemsCountLabel = computed(() => {
+  const count = listStore.currentList?.items?.length ?? 0
+  const form = getPluralForm(count, locale.value)
+  if (form === 'one') return `${count} ${t('listManage.countOne')}`
+  if (form === 'few') return `${count} ${t('listManage.countFew')}`
+  return `${count} ${t('listManage.countMany')}`
+})
 </script>
 
 <template>
@@ -582,7 +586,7 @@ function extractUrl(text: string | null): string | null {
               </button>
             </div>
             <span class="items-count-pill">
-              {{ listStore.currentList.items.length }} {{ listStore.currentList.items.length === 1 ? 'prezent' : 'prezentów' }}
+              {{ itemsCountLabel }}
             </span>
           </div>
 
@@ -1611,112 +1615,6 @@ function extractUrl(text: string | null): string | null {
   justify-content: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-}
-
-/* Modals */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(30, 45, 61, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  padding: 1rem;
-}
-
-.modal {
-  width: 100%;
-  max-width: 520px;
-  margin-bottom: 0;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.modal-title-icon {
-  font-size: 1.4rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.75rem;
-  line-height: 1;
-  color: var(--color-text-light);
-  cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-fast);
-}
-
-.close-btn:hover {
-  color: var(--color-heading);
-}
-
-.confirm-message {
-  font-size: 1.05rem;
-  color: var(--color-heading);
-}
-
-.confirm-warning-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.65rem;
-  padding: 0.75rem 1rem;
-  background: rgba(245, 159, 0, 0.1);
-  border: 1px solid rgba(245, 159, 0, 0.3);
-  border-radius: var(--radius-md);
-  color: #b36b00;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.75rem;
-}
-
-.btn-danger-solid {
-  background: var(--color-danger);
-  color: #ffffff;
-}
-
-.btn-danger-solid:hover:not(:disabled) {
-  background: var(--color-danger-hover);
-  box-shadow: 0 4px 14px rgba(224, 49, 49, 0.35);
-}
-
-/* Modal animation */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-from .modal,
-.modal-fade-leave-to .modal {
-  transform: scale(0.95) translateY(10px);
 }
 
 @media (max-width: 650px) {

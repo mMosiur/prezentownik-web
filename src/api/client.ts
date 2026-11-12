@@ -1,6 +1,7 @@
 import axios from 'axios'
 import type { components } from './schema'
 import { useAuthStore } from '@/stores/auth'
+import { i18n } from '@/i18n'
 
 export type HttpValidationProblemDetails = components['schemas']['HttpValidationProblemDetails']
 
@@ -16,7 +17,7 @@ const client = axios.create({
 client.interceptors.request.use((config) => {
   let userLang = 'pl'
   try {
-    userLang = localStorage.getItem('user-language') || 'pl'
+    userLang = (i18n.global.locale.value as string) || localStorage.getItem('user-language') || 'pl'
   } catch {
     // Requests should still work when browser storage is unavailable.
   }

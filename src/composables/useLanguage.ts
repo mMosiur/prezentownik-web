@@ -16,7 +16,11 @@ export function useLanguage() {
   function changeLanguage(newLang: string) {
     // 1. Instantly updates Vue UI bindings
     locale.value = newLang
-    // 2. Persists setting so your Axios interceptor sends it in 'Accept-Language'
+    // 2. Synchronize html lang attribute
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = newLang
+    }
+    // 3. Persists setting so your Axios interceptor sends it in 'Accept-Language'
     try {
       localStorage.setItem('user-language', newLang)
     } catch {

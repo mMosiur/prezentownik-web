@@ -24,9 +24,15 @@ function resolveInitialLocale(): string {
   return 'pl'
 }
 
+const initialLocale = resolveInitialLocale()
+
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = initialLocale
+}
+
 export const i18n = createI18n({
   legacy: false, // Mandatory for Vue 3 Composition API
-  locale: resolveInitialLocale(),
+  locale: initialLocale,
   fallbackLocale: 'pl',
   messages: {
     pl,

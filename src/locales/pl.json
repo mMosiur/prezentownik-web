@@ -27,6 +27,9 @@
       "title": "Jak mamy Cię nazywać?"
     },
     "footerText": "2026 Prezentownik.info.pl",
+    "apiVersion": "API: v{version}",
+    "apiVersionWithCommit": "API: v{version} ({commit})",
+    "commitTooltip": "Commit: {commit}",
     "loading": "Ładowanie...",
     "claimAdoptionFailed": "Nie udało się potwierdzić, czy wszystkie zapisane rezerwacje zostały przeniesione. Nadal są zapisane w tej przeglądarce; ponów próbę, aby to sprawdzić.",
     "claimAdoptionPending": "Niektóre tokeny rezerwacji mają nierozstrzygnięty status. Rezerwacje mogą być już przypisane do tego konta albo nadal anonimowe; tokeny pozostają zapisane w tej przeglądarce. Ponów próbę lub sprawdź status na udostępnionej liście prezentów.",
@@ -177,7 +180,19 @@
       "showPassword": "Pokaż hasło"
     },
     "errors": {
-      "unexpected": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie."
+      "unexpected": "Wystąpił nieoczekiwany błąd. Spróbuj ponownie.",
+      "timeout": "Przekroczono limit czasu połączenia z serwerem. Sprawdź swoje połączenie internetowe i spróbuj ponownie.",
+      "network": "Nie można nawiązać połączenia z serwerem. Upewnij się, że masz połączenie z Internetem.",
+      "sessionExpired": "Twoja sesja wygasła lub nie jesteś zalogowany. Zaloguj się ponownie.",
+      "invalidCredentials": "Nieprawidłowy adres e-mail lub hasło. Sprawdź wprowadzone dane.",
+      "emailNotConfirmed": "Twoje konto nie zostało jeszcze potwierdzone. Sprawdź swoją skrzynkę pocztową i kliknij link potwierdzający, aby móc się zalogować.",
+      "lockedOut": "Twoje konto zostało tymczasowo zablokowane z powodu zbyt wielu nieudanych prób logowania. Spróbuj ponownie później.",
+      "badRequest": "Wprowadzone dane są nieprawidłowe. Upewnij się, że wszystkie pola są wypełnione poprawnie.",
+      "forbidden": "Brak uprawnień do wykonania tej operacji.",
+      "notFound": "Żądany zasób nie został odnaleziony.",
+      "accountLocked": "Twoje konto zostało zablokowane. Spróbuj ponownie później.",
+      "tooManyRequests": "Zbyt wiele prób w krótkim czasie. Odczekaj chwilę przed kolejną próbą.",
+      "serverError": "Wystąpił problem po stronie serwera. Pracujemy nad jego rozwiązaniem, spróbuj ponownie za chwilę."
     },
     "labels": {
       "anonymous": "Anonim",
@@ -201,6 +216,9 @@
     }
   },
   "dashboard": {
+    "activeListsFew": "aktywne listy",
+    "activeListsMany": "aktywnych list",
+    "activeListsOne": "aktywna lista",
     "allLists": "Wszystkie listy",
     "clearSearch": "Wyczyść wyszukiwanie",
     "createFirstList": "Utwórz pierwszą listę",
@@ -287,6 +305,9 @@
     "addGift": "Dodaj prezent",
     "addItem": "Dodaj pomysł",
     "backToDashboard": "Powrót do moich list",
+    "countFew": "prezenty",
+    "countMany": "prezentów",
+    "countOne": "prezent",
     "deleteItemModal": {
       "confirmMessage": "Czy na pewno chcesz usunąć prezent {name}?",
       "failed": "Nie udało się usunąć prezentu.",
@@ -459,6 +480,11 @@
     "shareText": "Zobacz moją listę prezentów i zarezerwuj coś dla mnie!",
     "shareTitle": "Lista prezentów: {name}",
     "shareTitleDefault": "Lista prezentów",
-    "title": "Udostępnij listę"
+    "title": "Udostępnij listę",
+    "email": "E-mail",
+    "nativeShareMobile": "Wyślij przez aplikację...",
+    "previewAsGuest": "Zobacz jako gość",
+    "quickShareLabel": "Szybkie udostępnianie:",
+    "whatsApp": "WhatsApp"
   }
 }

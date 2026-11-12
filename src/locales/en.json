@@ -27,6 +27,9 @@
       "title": "What should we call you?"
     },
     "footerText": "2026 Prezentownik.info.pl",
+    "apiVersion": "API: v{version}",
+    "apiVersionWithCommit": "API: v{version} ({commit})",
+    "commitTooltip": "Commit: {commit}",
     "loading": "Loading...",
     "claimAdoptionFailed": "We couldn't confirm whether all saved reservations were transferred. They remain saved in this browser; retry to check again.",
     "claimAdoptionPending": "Some reservation tokens remain unresolved. The reservations may already be on this account or may still be anonymous; they remain saved in this browser. Retry or check their status on the shared gift list.",
@@ -177,7 +180,19 @@
       "showPassword": "Show password"
     },
     "errors": {
-      "unexpected": "An unexpected error occurred. Please try again."
+      "unexpected": "An unexpected error occurred. Please try again.",
+      "timeout": "The connection to the server timed out. Please check your internet connection and try again.",
+      "network": "Could not connect to the server. Please make sure you have an internet connection.",
+      "sessionExpired": "Your session has expired or you are not signed in. Please sign in again.",
+      "invalidCredentials": "Invalid email or password. Please check your credentials.",
+      "emailNotConfirmed": "Your account has not been confirmed yet. Please check your email inbox and click the confirmation link to sign in.",
+      "lockedOut": "Your account has been temporarily locked due to too many failed sign-in attempts. Please try again later.",
+      "badRequest": "The submitted information is invalid. Please make sure all fields are filled in correctly.",
+      "forbidden": "You do not have permission to perform this action.",
+      "notFound": "The requested resource could not be found.",
+      "accountLocked": "Your account has been locked. Please try again later.",
+      "tooManyRequests": "Too many attempts in a short period. Please wait a moment before trying again.",
+      "serverError": "A server error occurred. We are working to resolve it, please try again in a moment."
     },
     "labels": {
       "anonymous": "Anonymous",
@@ -201,6 +216,9 @@
     }
   },
   "dashboard": {
+    "activeListsFew": "active lists",
+    "activeListsMany": "active lists",
+    "activeListsOne": "active list",
     "allLists": "All lists",
     "clearSearch": "Clear search",
     "createFirstList": "Create your first list",
@@ -287,6 +305,9 @@
     "addGift": "Add gift",
     "addItem": "Add idea",
     "backToDashboard": "Back to my lists",
+    "countFew": "gifts",
+    "countMany": "gifts",
+    "countOne": "gift",
     "deleteItemModal": {
       "confirmMessage": "Are you sure you want to delete the gift {name}?",
       "failed": "Failed to delete gift.",

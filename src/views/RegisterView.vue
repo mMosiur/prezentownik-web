@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
@@ -8,6 +8,7 @@ import { parseApiError } from '@/utils/errors'
 const { t } = useI18n()
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
 
 const email = ref('')
 const password = ref('')
@@ -83,7 +84,14 @@ async function handleSubmit() {
       email: email.value, 
       password: password.value
     })
-    router.push({ name: 'login', query: { registered: 'true', email: email.value } })
+    router.push({
+      name: 'login',
+      query: {
+        registered: 'true',
+        email: email.value,
+        ...(route.query.redirect ? { redirect: route.query.redirect } : {})
+      }
+    })
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('auth.register.failedDefault'))
     generalError.value = parsed.message
@@ -156,7 +164,7 @@ async function handleSubmit() {
               v-model="email"
               type="email"
               name="email"
-              autocomplete="username email"
+              autocomplete="email"
               :placeholder="t('auth.register.emailPlaceholder')"
               required
               class="with-icon"
@@ -350,7 +358,7 @@ async function handleSubmit() {
       <div class="auth-footer text-center mt-2">
         <p>
           {{ t('auth.register.alreadyHaveAccount') }}
-          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.register.loginLink') }}</RouterLink>
+          <RouterLink :to="{ name: 'login', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="auth-link">{{ t('auth.register.loginLink') }}</RouterLink>
         </p>
       </div>
     </div>

@@ -225,60 +225,6 @@ function selectInput(event: FocusEvent) {
 </template>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(30, 45, 61, 0.45);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  padding: 1rem;
-}
-
-.modal {
-  width: 100%;
-  max-width: 520px;
-  margin-bottom: 0;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.modal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.modal-title-icon {
-  font-size: 1.4rem;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 1.75rem;
-  line-height: 1;
-  color: var(--color-text-light);
-  cursor: pointer;
-  padding: 0.2rem 0.5rem;
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-fast);
-}
-
-.close-btn:hover {
-  color: var(--color-heading);
-}
-
 .share-hint-box {
   padding: 0.85rem 1rem;
   background: var(--color-accent-soft);
@@ -390,33 +336,8 @@ function selectInput(event: FocusEvent) {
   font-size: 0.85rem;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  margin-top: 1.5rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--color-border);
-}
-
 .btn-close-modal {
   min-width: 100px;
-}
-
-/* Modal animation */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-fade-enter-from .modal,
-.modal-fade-leave-to .modal {
-  transform: scale(0.95) translateY(10px);
 }
 
 @media (max-width: 500px) {

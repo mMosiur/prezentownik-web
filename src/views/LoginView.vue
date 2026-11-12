@@ -4,6 +4,7 @@ import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { parseApiError } from '@/utils/errors'
+import { getSafeRedirect } from '@/utils/url'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -92,12 +93,8 @@ async function handleSubmit() {
       { useCookies: true, useSessionCookies: !rememberMe.value }
     )
 
-    const redirect = route.query.redirect as string | undefined
-    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
-      router.push(redirect)
-    } else {
-      router.push({ name: 'dashboard' })
-    }
+    const safeRedirect = getSafeRedirect(route.query.redirect)
+    router.push(safeRedirect)
   } catch (err: unknown) {
     const parsed = parseApiError(err, t('auth.login.failedDefault'))
     generalError.value = parsed.message
@@ -148,7 +145,7 @@ async function handleSubmit() {
             {{ t('auth.login.registeredSuccessDesc') }}
           </span>
           <RouterLink
-            :to="{ name: 'resend-confirmation', query: email ? { email } : {} }"
+            :to="{ name: 'resend-confirmation', query: { ...(email ? { email } : {}), ...(route.query.redirect ? { redirect: route.query.redirect } : {}) } }"
             class="auth-link alert-action-link"
           >
             {{ t('auth.login.registeredSuccessResend') }}
@@ -213,7 +210,7 @@ async function handleSubmit() {
           <span class="alert-desc">{{ generalError }}</span>
           <RouterLink
             v-if="isEmailNotConfirmed"
-            :to="{ name: 'resend-confirmation', query: { email } }"
+            :to="{ name: 'resend-confirmation', query: { email, ...(route.query.redirect ? { redirect: route.query.redirect } : {}) } }"
             class="auth-link alert-action-link"
           >
             {{ t('auth.login.notConfirmedResend') }}
@@ -245,7 +242,7 @@ async function handleSubmit() {
               v-model="email"
               type="email"
               name="email"
-              autocomplete="username email"
+              autocomplete="username"
               :placeholder="t('auth.login.emailPlaceholder')"
               required
               class="with-icon"
@@ -374,11 +371,11 @@ async function handleSubmit() {
       <div class="auth-footer text-center mt-2">
         <p>
           {{ t('auth.login.noAccount') }}
-          <RouterLink :to="{ name: 'register' }" class="auth-link">{{ t('auth.login.registerLink') }}</RouterLink>
+          <RouterLink :to="{ name: 'register', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="auth-link">{{ t('auth.login.registerLink') }}</RouterLink>
         </p>
         <p class="mt-1">
           {{ t('auth.login.resendEmailPrompt') }}
-          <RouterLink :to="{ name: 'resend-confirmation' }" class="auth-link">{{ t('auth.login.resendEmailLink') }}</RouterLink>
+          <RouterLink :to="{ name: 'resend-confirmation', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="auth-link">{{ t('auth.login.resendEmailLink') }}</RouterLink>
         </p>
       </div>
     </div>

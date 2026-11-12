@@ -4,6 +4,7 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useClaimStore } from '@/stores/claim'
+import { useVersionStore } from '@/stores/version'
 import { useLanguage } from '@/composables/useLanguage'
 import { useEscapeKey } from '@/composables/useEscapeKey'
 import ToastContainer from '@/components/ToastContainer.vue'
@@ -11,6 +12,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
 const { t } = useI18n()
 const authStore = useAuthStore()
 const claimStore = useClaimStore()
+const versionStore = useVersionStore()
 const route = useRoute()
 const { currentLang, changeLanguage, supportedLanguages } = useLanguage()
 
@@ -48,6 +50,24 @@ const userInitials = computed(() => {
   return name.slice(0, 2).toUpperCase()
 })
 
+const footerVersionText = computed(() => {
+  if (!versionStore.version) return null
+  const cleanVersion = versionStore.version.startsWith('v') || versionStore.version.startsWith('V')
+    ? versionStore.version.slice(1)
+    : versionStore.version
+  if (versionStore.shortCommit) {
+    return t('app.apiVersionWithCommit', { version: cleanVersion, commit: versionStore.shortCommit })
+  }
+  return t('app.apiVersion', { version: cleanVersion })
+})
+
+const versionTooltip = computed(() => {
+  if (versionStore.commit && versionStore.commit !== 'unknown') {
+    return t('app.commitTooltip', { commit: versionStore.commit })
+  }
+  return undefined
+})
+
 function checkColdStartTimer() {
   if (authStore.isLoading) {
     if (!coldStartTimer) {
@@ -68,6 +88,7 @@ function checkColdStartTimer() {
 
 onMounted(() => {
   checkColdStartTimer()
+  versionStore.fetchVersion()
 })
 
 watch(() => authStore.isLoading, () => {
@@ -300,6 +321,9 @@ onUnmounted(() => {
   <footer class="app-footer">
     <div class="container text-center">
       <p class="footer-copy">{{ t('app.footerText') }}</p>
+      <p v-if="footerVersionText" class="footer-version" :title="versionTooltip">
+        {{ footerVersionText }}
+      </p>
     </div>
   </footer>
 
@@ -618,6 +642,13 @@ onUnmounted(() => {
 
 .footer-copy {
   margin: 0;
+}
+
+.footer-version {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-light);
+  opacity: 0.85;
 }
 
 @media (max-width: 680px) {

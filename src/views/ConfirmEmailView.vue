@@ -59,7 +59,7 @@ onMounted(async () => {
         </div>
         <h1 class="mt-1">{{ t('auth.confirmEmail.successTitle') }}</h1>
         <p class="auth-subtitle">{{ t('auth.confirmEmail.successDesc') }}</p>
-        <RouterLink :to="{ name: 'login' }" class="btn btn-block btn-submit mt-2">
+        <RouterLink :to="{ name: 'login', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="btn btn-block btn-submit mt-2">
           {{ t('auth.confirmEmail.goToLogin') }}
         </RouterLink>
       </div>
@@ -71,11 +71,11 @@ onMounted(async () => {
         </div>
         <h1 class="mt-1">{{ t('auth.confirmEmail.failedTitle') }}</h1>
         <p class="auth-subtitle">{{ errorMessage }}</p>
-        <RouterLink :to="{ name: 'resend-confirmation' }" class="btn btn-block btn-submit mt-2">
+        <RouterLink :to="{ name: 'resend-confirmation', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="btn btn-block btn-submit mt-2">
           {{ t('auth.confirmEmail.resendLink') }}
         </RouterLink>
         <div class="auth-footer text-center mt-2">
-          <RouterLink :to="{ name: 'login' }" class="auth-link">{{ t('auth.confirmEmail.backToLogin') }}</RouterLink>
+          <RouterLink :to="{ name: 'login', query: route.query.redirect ? { redirect: route.query.redirect } : undefined }" class="auth-link">{{ t('auth.confirmEmail.backToLogin') }}</RouterLink>
         </div>
       </div>
     </div>

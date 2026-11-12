@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
+import { getSafeRedirect } from '@/utils/url'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -82,7 +83,8 @@ router.beforeEach(async (to, from) => {
     }
     return { name: 'login', query }
   } else if (to.meta.guest && authStore.isAuthenticated) {
-    return { name: 'dashboard' }
+    const safeRedirect = getSafeRedirect(to.query.redirect)
+    return safeRedirect
   } else {
     return
   }
