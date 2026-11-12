@@ -6,30 +6,46 @@ import type { components } from '@/api/schema'
 export type VersionResponse = components['schemas']['VersionResponse']
 
 export const useVersionStore = defineStore('version', () => {
-  const version = ref<string | null>(null)
-  const commit = ref<string | null>(null)
+  const appVersion = ref(__APP_VERSION__)
+  const appCommit = ref(__COMMIT_HASH__)
+
+  const apiVersion = ref<string | null>(null)
+  const apiCommit = ref<string | null>(null)
   const isLoading = ref(false)
   const isLoaded = ref(false)
 
-  const shortCommit = computed(() => {
-    if (!commit.value || commit.value === 'unknown') {
+  const appShortCommit = computed(() => {
+    if (!appCommit.value || appCommit.value === 'unknown') {
       return null
     }
-    if (/^[0-9a-f]{7,}$/i.test(commit.value)) {
-      return commit.value.slice(0, 7)
+    if (/^[0-9a-f]{7,}$/i.test(appCommit.value)) {
+      return appCommit.value.slice(0, 7)
     }
-    return commit.value
+    return appCommit.value
   })
 
-  const formattedVersion = computed(() => {
-    if (!version.value) return null
-    const v = version.value.startsWith('v') || version.value.startsWith('V')
-      ? version.value
-      : `v${version.value}`
-    if (shortCommit.value) {
-      return `${v} (${shortCommit.value})`
+  const apiShortCommit = computed(() => {
+    if (!apiCommit.value || apiCommit.value === 'unknown') {
+      return null
     }
-    return v
+    if (/^[0-9a-f]{7,}$/i.test(apiCommit.value)) {
+      return apiCommit.value.slice(0, 7)
+    }
+    return apiCommit.value
+  })
+
+  const formattedAppVersion = computed(() => {
+    if (!appVersion.value) return null
+    return appVersion.value.startsWith('v') || appVersion.value.startsWith('V')
+      ? appVersion.value
+      : `v${appVersion.value}`
+  })
+
+  const formattedApiVersion = computed(() => {
+    if (!apiVersion.value) return null
+    return apiVersion.value.startsWith('v') || apiVersion.value.startsWith('V')
+      ? apiVersion.value
+      : `v${apiVersion.value}`
   })
 
   async function fetchVersion() {
@@ -38,8 +54,8 @@ export const useVersionStore = defineStore('version', () => {
     try {
       const response = await client.get<VersionResponse>('/version')
       if (response.data) {
-        version.value = response.data.version
-        commit.value = response.data.commit
+        apiVersion.value = response.data.version
+        apiCommit.value = response.data.commit
         isLoaded.value = true
       }
     } catch {
@@ -50,10 +66,14 @@ export const useVersionStore = defineStore('version', () => {
   }
 
   return {
-    version,
-    commit,
-    shortCommit,
-    formattedVersion,
+    appVersion,
+    appCommit,
+    appShortCommit,
+    formattedAppVersion,
+    apiVersion,
+    apiCommit,
+    apiShortCommit,
+    formattedApiVersion,
     isLoading,
     isLoaded,
     fetchVersion,

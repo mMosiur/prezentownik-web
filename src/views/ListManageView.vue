@@ -71,6 +71,7 @@ const reorderError = ref('')
 const reorderAnnouncement = ref('')
 const draggedIndex = ref<number | null>(null)
 const dragOverIndex = ref<number | null>(null)
+const isReorderMode = ref(false)
 
 let loadGeneration = 0
 
@@ -107,6 +108,7 @@ function resetViewState() {
   mutationRefreshFailed.value = false
   isRefreshingList.value = false
   isReordering.value = false
+  isReorderMode.value = false
   reorderError.value = ''
   draggedIndex.value = null
   dragOverIndex.value = null
@@ -512,6 +514,13 @@ function onDragEnd() {
   dragOverIndex.value = null
 }
 
+function toggleReorderMode() {
+  isReorderMode.value = !isReorderMode.value
+  if (!isReorderMode.value) {
+    reorderAnnouncement.value = t('listManage.reorderSaved')
+  }
+}
+
 function getItemTypeName(type: number) {
   switch (type) {
     case 0: return t('listManage.itemTypes.single')
@@ -646,25 +655,53 @@ const itemsCountLabel = computed(() => {
           <button class="close-btn" :aria-label="t('common.actions.close')" @click="reorderError = ''">&times;</button>
         </div>
 
-        <TransitionGroup name="list-item" tag="div" class="items-list mt-2">
+        <div v-if="listStore.currentList.items.length > 1" class="items-toolbar">
+          <div class="items-toolbar-info">
+            <span v-if="isReorderMode" class="reorder-mode-badge">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="7 15 12 20 17 15"></polyline>
+                <polyline points="7 9 12 4 17 9"></polyline>
+              </svg>
+              <span>{{ t('listManage.reorderModeActive') }}</span>
+            </span>
+          </div>
+          <button
+            type="button"
+            class="btn btn-sm reorder-toggle-btn"
+            :class="isReorderMode ? 'btn-reorder-active' : 'btn-outline'"
+            @click="toggleReorderMode"
+          >
+            <svg v-if="!isReorderMode" xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="7 15 12 20 17 15"></polyline>
+              <polyline points="7 9 12 4 17 9"></polyline>
+            </svg>
+            <svg v-else xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            <span>{{ isReorderMode ? t('listManage.reorderDone') : t('listManage.reorder') }}</span>
+          </button>
+        </div>
+
+        <TransitionGroup name="list-item" tag="div" class="items-list" :class="{ 'mt-2': listStore.currentList.items.length <= 1, 'mt-1': listStore.currentList.items.length > 1 }">
           <div
             v-for="(item, index) in listStore.currentList.items"
             :key="item.id"
             class="card item-card"
             :class="{
               'is-dragging': draggedIndex === index,
-              'drag-over': dragOverIndex === index
+              'drag-over': dragOverIndex === index,
+              'reorder-mode': isReorderMode
             }"
-            draggable="true"
-            @dragstart="onDragStart($event, index)"
-            @dragover="onDragOver($event, index)"
-            @dragenter="onDragOver($event, index)"
-            @dragleave="onDragLeave($event, index)"
-            @drop="onDrop($event, index)"
-            @dragend="onDragEnd"
+            :draggable="isReorderMode"
+            @dragstart="isReorderMode && onDragStart($event, index)"
+            @dragover="isReorderMode && onDragOver($event, index)"
+            @dragenter="isReorderMode && onDragOver($event, index)"
+            @dragleave="isReorderMode && onDragLeave($event, index)"
+            @drop="isReorderMode && onDrop($event, index)"
+            @dragend="isReorderMode && onDragEnd()"
           >
-            <!-- Drag Handle & Order Controls -->
-            <div class="item-order" :title="t('listManage.dragTooltip')">
+            <!-- Drag Handle & Order Controls (only in reorder mode) -->
+            <div v-if="isReorderMode" class="item-order" :title="t('listManage.dragTooltip')">
               <div class="drag-grip" aria-hidden="true">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="9" cy="5" r="1.5"></circle>
@@ -676,6 +713,7 @@ const itemsCountLabel = computed(() => {
                 </svg>
               </div>
               <button
+                type="button"
                 @click.stop="moveItem(index, 'up')"
                 :disabled="index === 0 || isReordering"
                 class="order-btn"
@@ -686,6 +724,7 @@ const itemsCountLabel = computed(() => {
               </button>
               <span class="order-number">{{ index + 1 }}</span>
               <button
+                type="button"
                 @click.stop="moveItem(index, 'down')"
                 :disabled="index === listStore.currentList.items.length - 1 || isReordering"
                 class="order-btn"
@@ -700,6 +739,7 @@ const itemsCountLabel = computed(() => {
             <div class="item-content">
               <div class="item-main">
                 <div class="item-header-row">
+                  <span v-if="!isReorderMode" class="item-index-pill" aria-hidden="true">{{ index + 1 }}</span>
                   <h3 class="item-title">{{ item.name }}</h3>
                   
                   <!-- Type Badge -->
@@ -710,10 +750,10 @@ const itemsCountLabel = computed(() => {
                   </div>
                 </div>
 
-                <p v-if="item.description" class="item-description">{{ item.description }}</p>
+                <p v-if="item.description && !isReorderMode" class="item-description">{{ item.description }}</p>
 
                 <!-- URL button if link is found -->
-                <div v-if="extractUrl(item.description)" class="item-link-row mt-1">
+                <div v-if="extractUrl(item.description) && !isReorderMode" class="item-link-row mt-1">
                   <a
                     :href="extractUrl(item.description)!"
                     target="_blank"
@@ -731,8 +771,8 @@ const itemsCountLabel = computed(() => {
                 </div>
               </div>
               
-              <!-- Item Actions -->
-              <div class="item-actions">
+              <!-- Item Actions (hidden during reorder mode) -->
+              <div v-if="!isReorderMode" class="item-actions">
                 <button
                   @click.stop="openEditItem(item)"
                   class="btn btn-sm btn-outline item-btn"
@@ -892,7 +932,7 @@ const itemsCountLabel = computed(() => {
                 <div class="form-group">
                   <label id="item-type-label">{{ t('listManage.itemModal.typeLabel') }}</label>
                   <div
-                    class="type-selector-grid"
+                    class="type-seg"
                     role="radiogroup"
                     aria-labelledby="item-type-label"
                   >
@@ -900,56 +940,48 @@ const itemsCountLabel = computed(() => {
                       type="button"
                       role="radio"
                       :aria-checked="itemForm.type === 0"
-                      class="type-choice-card"
+                      class="type-seg-btn"
                       :class="{ 'is-selected': itemForm.type === 0 }"
                       :disabled="isSavingItem"
+                      :title="t('listManage.itemModal.typeHintSingle')"
                       @click="setItemType(0)"
                       @keydown.right.prevent="setItemType(1)"
                       @keydown.down.prevent="setItemType(1)"
                     >
-                      <div class="type-choice-icon">🎁</div>
-                      <div class="type-choice-info">
-                        <p class="type-choice-title">{{ t('listManage.itemTypes.single') }}</p>
-                        <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintSingle') }}</span>
-                      </div>
+                      <span aria-hidden="true">🎁</span>
+                      <span>{{ t('listManage.itemTypes.single') }}</span>
                     </button>
-
                     <button
                       type="button"
                       role="radio"
                       :aria-checked="itemForm.type === 1"
-                      class="type-choice-card"
+                      class="type-seg-btn"
                       :class="{ 'is-selected': itemForm.type === 1 }"
                       :disabled="isSavingItem"
+                      :title="t('listManage.itemModal.typeHintQuantity')"
                       @click="setItemType(1)"
                       @keydown.left.prevent="setItemType(0)"
                       @keydown.up.prevent="setItemType(0)"
                       @keydown.right.prevent="setItemType(2)"
                       @keydown.down.prevent="setItemType(2)"
                     >
-                      <div class="type-choice-icon">🔢</div>
-                      <div class="type-choice-info">
-                        <p class="type-choice-title">{{ t('listManage.itemTypes.quantity') }}</p>
-                        <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintQuantity') }}</span>
-                      </div>
+                      <span aria-hidden="true">🔢</span>
+                      <span>{{ t('listManage.itemTypes.quantity') }}</span>
                     </button>
-
                     <button
                       type="button"
                       role="radio"
                       :aria-checked="itemForm.type === 2"
-                      class="type-choice-card"
+                      class="type-seg-btn"
                       :class="{ 'is-selected': itemForm.type === 2 }"
                       :disabled="isSavingItem"
+                      :title="t('listManage.itemModal.typeHintUnlimited')"
                       @click="setItemType(2)"
                       @keydown.left.prevent="setItemType(1)"
                       @keydown.up.prevent="setItemType(1)"
                     >
-                      <div class="type-choice-icon">♾️</div>
-                      <div class="type-choice-info">
-                        <p class="type-choice-title">{{ t('listManage.itemTypes.unlimited') }}</p>
-                        <span class="type-choice-desc">{{ t('listManage.itemModal.typeHintUnlimited') }}</span>
-                      </div>
+                      <span aria-hidden="true">♾️</span>
+                      <span>{{ t('listManage.itemTypes.unlimited') }}</span>
                     </button>
                   </div>
                 </div>
@@ -1329,6 +1361,80 @@ const itemsCountLabel = computed(() => {
   box-shadow: 0 0 0 2px var(--color-accent);
 }
 
+/* Items Toolbar */
+.items-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  margin-bottom: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.items-toolbar-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reorder-mode-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--color-accent);
+  background: var(--color-accent-soft);
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(59, 119, 108, 0.2);
+}
+
+.reorder-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
+}
+
+.btn-reorder-active {
+  background: var(--color-accent);
+  color: #ffffff;
+  border-color: var(--color-accent);
+}
+
+.btn-reorder-active:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  color: #ffffff;
+}
+
+.item-index-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-full);
+  background: var(--color-background-soft);
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.item-card.reorder-mode {
+  border-color: rgba(59, 119, 108, 0.35);
+  box-shadow: 0 1px 4px rgba(59, 119, 108, 0.08);
+}
+
+.item-card.reorder-mode .item-content {
+  padding: 0.75rem 1.1rem;
+}
+
 /* Order Controls & Handle */
 .item-order {
   display: flex;
@@ -1337,8 +1443,8 @@ const itemsCountLabel = computed(() => {
   justify-content: center;
   background: var(--color-background-soft);
   border-right: 1px solid var(--color-border);
-  padding: 0.6rem 0.5rem;
-  min-width: 44px;
+  padding: 0.45rem 0.4rem;
+  min-width: 46px;
   cursor: grab;
   user-select: none;
 }
@@ -1349,19 +1455,26 @@ const itemsCountLabel = computed(() => {
 }
 
 .order-btn {
-  background: none;
-  border: none;
-  font-size: 0.7rem;
-  color: var(--color-text-light);
+  background: var(--color-background-elevated);
+  border: 1px solid var(--color-border);
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
   cursor: pointer;
-  padding: 0.2rem 0.35rem;
+  padding: 0.2rem;
   border-radius: var(--radius-sm);
   line-height: 1;
+  min-width: 28px;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
 }
 
 .order-btn:hover:not(:disabled) {
-  color: var(--color-accent);
+  color: var(--color-accent-active);
   background: var(--color-accent-soft);
+  border-color: var(--color-accent);
 }
 
 .order-btn:disabled {
@@ -1481,54 +1594,48 @@ const itemsCountLabel = computed(() => {
   color: var(--color-text-muted);
 }
 
-/* Type Choice Cards in Item Modal */
-.type-selector-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.65rem;
+/* Segmented Type Pill in Item Modal */
+.type-seg {
+  display: flex;
+  gap: 0;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
   margin-top: 0.35rem;
 }
 
-.type-choice-card {
+.type-seg-btn {
+  flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  text-align: center;
-  padding: 0.85rem 0.5rem;
-  border: 1.5px solid var(--color-border);
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.6rem 0.5rem;
+  min-height: 44px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
   background: var(--color-background-elevated);
-  border-radius: var(--radius-md);
+  border: none;
+  border-right: 1px solid var(--color-border);
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: background var(--transition-fast), color var(--transition-fast);
+  white-space: nowrap;
 }
 
-.type-choice-card:hover {
-  border-color: var(--color-border-hover);
+.type-seg-btn:last-child {
+  border-right: none;
+}
+
+.type-seg-btn:hover:not(:disabled) {
   background: var(--color-background-soft);
-}
-
-.type-choice-card.is-selected {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
-  box-shadow: 0 0 0 2px var(--color-accent-glow);
-}
-
-.type-choice-icon {
-  font-size: 1.5rem;
-  margin-bottom: 0.35rem;
-}
-
-.type-choice-title {
-  font-weight: 700;
-  font-size: 0.88rem;
   color: var(--color-heading);
 }
 
-.type-choice-desc {
-  font-size: 0.74rem;
-  color: var(--color-text-muted);
-  line-height: 1.25;
-  margin-top: 0.2rem;
+.type-seg-btn.is-selected {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  font-weight: 700;
 }
 
 /* Quantity Stepper */
@@ -1631,13 +1738,27 @@ const itemsCountLabel = computed(() => {
     flex: 1;
   }
 
-  .type-selector-grid {
-    grid-template-columns: 1fr;
-  }
-
   .item-content {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .item-card.reorder-mode .item-content {
+    flex-direction: row;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+  }
+
+  .item-order {
+    min-width: 54px;
+    padding: 0.5rem 0.4rem;
+  }
+
+  .order-btn {
+    min-width: 44px;
+    min-height: 38px;
+    font-size: 0.95rem;
+    border-radius: var(--radius-md);
   }
 
   .item-actions {

@@ -51,21 +51,26 @@ const userInitials = computed(() => {
 })
 
 const footerVersionText = computed(() => {
-  if (!versionStore.version) return null
-  const cleanVersion = versionStore.version.startsWith('v') || versionStore.version.startsWith('V')
-    ? versionStore.version.slice(1)
-    : versionStore.version
-  if (versionStore.shortCommit) {
-    return t('app.apiVersionWithCommit', { version: cleanVersion, commit: versionStore.shortCommit })
-  }
-  return t('app.apiVersion', { version: cleanVersion })
+  const cleanAppVersion = versionStore.appVersion
+    ? (versionStore.appVersion.startsWith('v') || versionStore.appVersion.startsWith('V')
+      ? versionStore.appVersion.slice(1)
+      : versionStore.appVersion)
+    : ''
+
+  const cleanApiVersion = versionStore.apiVersion
+    ? (versionStore.apiVersion.startsWith('v') || versionStore.apiVersion.startsWith('V')
+      ? versionStore.apiVersion.slice(1)
+      : versionStore.apiVersion)
+    : ''
+
+  return `${t('app.appVersion', { version: cleanAppVersion })} • ${t('app.apiVersion', { version: cleanApiVersion })}`
 })
 
 const versionTooltip = computed(() => {
-  if (versionStore.commit && versionStore.commit !== 'unknown') {
-    return t('app.commitTooltip', { commit: versionStore.commit })
-  }
-  return undefined
+  return t('app.versionTooltip', {
+    appCommit: versionStore.appCommit || '',
+    apiCommit: versionStore.apiCommit || '',
+  })
 })
 
 function checkColdStartTimer() {
@@ -321,7 +326,7 @@ onUnmounted(() => {
   <footer class="app-footer">
     <div class="container text-center">
       <p class="footer-copy">{{ t('app.footerText') }}</p>
-      <p v-if="footerVersionText" class="footer-version" :title="versionTooltip">
+      <p class="footer-version" :title="versionTooltip">
         {{ footerVersionText }}
       </p>
     </div>
